@@ -1,7 +1,10 @@
 import os
 
 import pandas as pd
+import torch
 
+from src.experimental.triple_arch.archs import StepTimeLSTM
+from src.experimental.triple_arch.training import train_state_model
 from src.preprocessing.clean_data import strip_data, create_header_constants
 from src.preprocessing.sequences import preprocess_data, make_sequences
 
@@ -27,6 +30,13 @@ def get_sequences():
 
 def main():
     sequences = get_sequences()
+
+    n_seq = len(sequences)
+    n_attr = sequences[0].shape[1]
+
+    state_model = StepTimeLSTM(input_size=n_attr, hidden_size=256, output_size=n_attr, device="cpu")
+
+    train_state_model(sequences, state_model)
 
     pass
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import MinMaxScaler
 
@@ -52,7 +53,7 @@ def preprocess_data(input_df: pd.DataFrame):
 
 def process_group(group: pd.DataFrame):
     group.drop(columns=[c.PATIENTID, c.DATEID], inplace=True)
-    return group.values
+    return torch.Tensor(group.values)
 
 
 def make_sequences(input_df: pd.DataFrame):
