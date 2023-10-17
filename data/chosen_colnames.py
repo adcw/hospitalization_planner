@@ -8,9 +8,6 @@ colnames = [
     # Constant attributes
     C.BIRTHWEIGHT,                              # [<float>]
 
-    # Vitality
-    C.ISALIVE,                                  # ['YES', 'NO']
-
     # Continuous attributes
     C.PTL, C.CREATININE, C.TOTAL_BILIRUBIN,     # [<float>, 'MISSING'] - the only columns that has missing values
                                                 # Missing value percentage

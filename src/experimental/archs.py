@@ -1,55 +1,64 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
-# Przykładowe dane
-X = torch.tensor([[1.0], [2.0], [3.0], [4.0], [5.0]], dtype=torch.float32)
-y = torch.tensor([2.0, 4.0, 6.0, 8.0, 10.0], dtype=torch.float32)
+# Przykładowe dane treningowe
+# Zakładamy, że mamy sekwencje obserwacji i odpowiadających akcji na każdym kroku czasowym
+# W rzeczywistości dane te powinny być odpowiednio przygotowane
+observations = torch.randn(5, 2)  # Przykładowe obserwacje
+actions = torch.randint(0, 2, (5,))  # Przykładowe akcje (0 lub 1) w odpowiedzi na obserwacje
 
+# Parametry modelu
+input_size = 2
+hidden_size = 3
+output_size = 2
 
-# Tworzenie modelu LSTM w PyTorch
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super(LSTMModel, self).__init__()
+# Definicja modelu LSTM na poziomie kroku czasowego
+class StepTimeLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(StepTimeLSTM, self).__init__()
+        self.hidden_size = hidden_size
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.fc = nn.Linear(hidden_size, 1)
+        self.fc = nn.Linear(hidden_size, output_size)
 
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        out = self.fc(lstm_out[:, -1, :])
-        return out
+    def forward(self, x, h0, c0):
+        out, (hn, cn) = self.lstm(x, (h0, c0))
+        out = self.fc(out)
+        return out, (hn, cn)
 
+# Inicjalizacja modelu
+model = StepTimeLSTM(input_size, hidden_size, output_size)
 
-model = LSTMModel(input_size=1, hidden_size=50)
-criterion = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+# Funkcja kosztu i optymalizator
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Proces treningu
-num_epochs = 100
-for epoch in range(num_epochs):
-    model.train()
+# Przygotowanie danych treningowych na poziomie kroku czasowego
+for t in range(observations.size(0)):
+    observation = observations[t].view(1, 1, -1)
+    action = actions[t].view(1, -1)
+
+    if t == 0:
+        # Inicjalizacja stanu ukrytego na początku sekwencji
+        h0 = torch.zeros(1, 1, hidden_size)
+        c0 = torch.zeros(1, 1, hidden_size)
+    else:
+        # Przekaż stan ukryty z poprzedniego kroku czasowego
+        h0 = hn
+        c0 = cn
+
+    # Zerowanie gradientów
     optimizer.zero_grad()
 
-    # Forward pass
-    y_output = model(X.view(1, len(X), 1))
-    loss = criterion(y_output.view(-1), y)
+    # Przetwarzanie na poziomie kroku czasowego
+    outputs, (hn, cn) = model(observation, h0, c0)
 
-    # Backward pass and optimization
+    # Obliczanie straty
+    loss = criterion(outputs.view(1, -1), action)
+
+    # Wsteczna propagacja i aktualizacja wag
     loss.backward()
     optimizer.step()
 
-    if (epoch + 1) % 10 == 0:
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
-
-# Prognozowanie kolejnych kroków
-output_sequence = []
-X_input = X[0].view(1, 1, 1)  # Początkowy punkt danych
-
-for i in range(len(X)):
-    y_output = model(X_input)
-    output_sequence.append(y_output.item())
-
-    # Aktualizacja danych wejściowych na podstawie wyniku poprzedniego kroku
-    if i < len(X) - 1:
-        X_input = torch.tensor([[y_output.item()]], dtype=torch.float32).view(1, 1, 1)
-
-print("Wygenerowana sekwencja:", output_sequence)
+# Teraz model jest wytrenowany na poziomie kroku czasowego
+pass
