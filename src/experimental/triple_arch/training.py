@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from src.experimental.triple_arch.archs import StepTimeLSTM
 import matplotlib.pyplot as plt
+from sklearn.model_selection import KFold
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -82,23 +83,29 @@ class StatePredictionModule:
             self._last_mean_vloss = mean_loss
 
     def train(self,
-              train_sequences: list[torch.Tensor],
-              val_sequences: list[torch.Tensor],
+              sequences: list[torch.Tensor],
 
               epochs: int = 5,
-              es_patience: None | int = None):
+              es_patience: None | int = None,
+              n_splits: int = 2):
 
         if es_patience is not None:
             self._patience_counter = 0
 
         for epoch in range(epochs):
-            # Train on sequences
-            progress = tqdm(enumerate(train_sequences), desc=f"Training on {epoch=}")
-            self._forward_sequences(progress, is_validation=False)
+            kf = KFold(n_splits=n_splits, shuffle=True)
 
-            # Track validation loss
-            progress = tqdm(enumerate(val_sequences), desc=f"Validating on {epoch=}")
-            self._forward_sequences(progress, is_validation=True)
+            for train_index, val_index in kf.split(sequences):
+                train_sequences = [sequences[i] for i in train_index]
+                val_sequences = [sequences[i] for i in val_index]
+
+                # Train on sequences
+                progress = tqdm(enumerate(train_sequences), desc=f"Training on {epoch=}")
+                self._forward_sequences(progress, is_validation=False)
+
+                # Track validation loss
+                progress = tqdm(enumerate(val_sequences), desc=f"Validating on {epoch=}")
+                self._forward_sequences(progress, is_validation=True)
 
             if es_patience is not None:
                 if self._last_mean_vloss < self._min_mean_vloss:

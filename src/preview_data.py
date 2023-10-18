@@ -28,21 +28,19 @@ def get_sequences(train_perc: float = 0.7):
     whole_df = pd.read_csv(DATA_STRIPPED_PATH, sep=" ", dtype=object)
 
     preprocessed_df, scaler, imputer = preprocess_data(whole_df)
-    sequences = make_sequences(preprocessed_df)[:5]
+    sequences = make_sequences(preprocessed_df)[:10]
     np.random.shuffle(sequences)
 
-    split_point = round(train_perc * len(sequences))
-
-    return sequences[:split_point], sequences[split_point:]
+    return sequences
 
 
 def main():
-    train_seq, val_seq = get_sequences()
+    sequences = get_sequences()
 
-    n_attr = train_seq[0].shape[1]
+    n_attr = sequences[0].shape[1]
 
     pred_model = StatePredictionModule(n_attr=n_attr, hidden_size=256, device="cuda")
-    pred_model.train(train_sequences=train_seq, val_sequences=val_seq, es_patience=3, epochs=30)
+    pred_model.train(sequences=sequences, es_patience=3, epochs=30, n_splits=5)
 
     # train_state_model(train_sequences=train_seq, val_sequences=val_seq, model=state_model, device="cuda")
 
