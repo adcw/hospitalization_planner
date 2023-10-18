@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from src.experimental.triple_arch.archs import StepTimeLSTM
-from src.experimental.triple_arch.training import StatePredictionModule
+from src.experimental.triple_arch.state_predict_module import StatePredictionModule
 from src.preprocessing.clean_data import strip_data, create_header_constants
 from src.preprocessing.sequences import preprocess_data, make_sequences
 
