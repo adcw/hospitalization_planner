@@ -35,12 +35,14 @@ def get_sequences(train_perc: float = 0.7):
 
 
 def main():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     sequences = get_sequences()
 
     n_attr = sequences[0].shape[1]
 
-    pred_model = StatePredictionModule(n_attr=n_attr, hidden_size=256, device="cuda")
-    pred_model.train(sequences=sequences, es_patience=3, epochs=30, n_splits=5)
+    pred_model = StatePredictionModule(n_attr=n_attr, hidden_size=256, device=device)
+    pred_model.train(sequences=sequences, es_patience=2, epochs=30, n_splits=3)
 
     # train_state_model(train_sequences=train_seq, val_sequences=val_seq, model=state_model, device="cuda")
 
