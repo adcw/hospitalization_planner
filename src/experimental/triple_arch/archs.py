@@ -4,13 +4,37 @@ from torch.nn import functional as F
 
 
 class StepTimeLSTM(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int, output_size: int, device: torch.device = 'cpu'):
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 output_size: int,
+                 device: torch.device = 'cpu',
+
+                 activation=F.sigmoid,
+
+                 fccn_arch: list[int] | None = None,
+                 fccn_dropout_p: float = 0.15,
+                 fccn_activation=F.relu
+                 ):
         super(StepTimeLSTM, self).__init__()
 
+        fccn_arch = [32] * 5 if fccn_arch is None else fccn_arch
+        self.fccn_arch = fccn_arch
+
+        self.fccn_dropout_p = fccn_dropout_p
+        self.fccn_activation = fccn_activation
+        self.activation = activation
+
         self.hidden_size = hidden_size
+        self.output_size = output_size
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device)
-        self.fccn = FCCN(input_size=hidden_size, hidden_sizes=[32] * 5, output_size=output_size, dropout_rate=0.15,
-                         activation=F.elu, device=device)
+
+        self.fccn = FCCN(input_size=self.hidden_size,
+                         hidden_sizes=self.fccn_arch,
+                         output_size=self.output_size,
+                         dropout_rate=self.fccn_dropout_p,
+                         activation=self.fccn_activation,
+                         device=device)
 
     def forward(self, x, h0, c0):
         """
@@ -22,7 +46,7 @@ class StepTimeLSTM(nn.Module):
 
         out, (hn, cn) = self.lstm(x, (h0, c0))
         out = self.fccn(out)
-        out = F.sigmoid(out)
+        out = self.activation(out)
         return out, (hn, cn)
 
 
