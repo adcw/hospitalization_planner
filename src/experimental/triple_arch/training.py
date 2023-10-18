@@ -21,42 +21,49 @@ class StatePredictionModule:
         self.hidden_size = hidden_size
         self.device = device
 
-        self.model = StepTimeLSTM(input_size=n_attr, hidden_size=256, output_size=n_attr, device=device)
+        self.model = StepTimeLSTM(input_size=n_attr,
+                                  hidden_size=self.hidden_size,
+                                  output_size=n_attr,
+                                  device=device)
 
-        self.is_trained = False
+        self.criterion = None
+        self.optimizer = None
 
-        self._last_mean_vloss = np.inf
-        self._min_mean_vloss = np.inf
-        self._patience_counter = 0
-
-        pass
-
-    def _forward_sequences(self, progress: tqdm,
+    def _forward_sequences(self,
+                           sequences: list[torch.Tensor],
                            is_validation: bool = False):
+        """
+        Forward list of sequences through model.
 
-        criterion = nn.MSELoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=0.001) if not is_validation else None
-        validation_loss_sum = 0
-        last_loss = None
+        :param sequences: list of sequences
+        :param is_validation: whether we are validating model instead of training
+        :return:
+        """
+        train_progress = tqdm(sequences,
+                              # desc=f"Training on {split_i + 1}/{n_splits} split",
+                              total=sum([len(s) - 1 for s in sequences]))
 
-        seq_i = 1
-        step_i = 1
-        for seq_i, seq in progress:
+        # Track overall loss
+        loss_sum = 0
 
-            # clear internal LSTM states
+        # Forward all sequences
+        for seq_i, seq in enumerate(sequences):
+
+            # Clear internal LSTM states
             h0 = torch.randn((1, self.model.hidden_size), device=self.device)
             c0 = torch.randn((1, self.model.hidden_size), device=self.device)
 
-            # iterate over sequence
+            # Iterate over sequence
             for step_i in range(len(seq) - 1):
-                # get input and output data
+
+                # Get input and output data
                 input_step: torch.Tensor = seq[step_i].clone()
                 output_step: torch.Tensor = seq[step_i + 1].clone()
                 input_step = input_step.expand((1, -1)).to(self.device)
                 output_step = output_step.expand((1, -1)).to(self.device)
 
                 if not is_validation:
-                    optimizer.zero_grad()
+                    self.optimizer.zero_grad()
 
                 if is_validation:
                     with torch.no_grad():
@@ -64,23 +71,26 @@ class StatePredictionModule:
                 else:
                     outputs, (hn, cn) = self.model(input_step, h0, c0)
 
-                loss = criterion(outputs, output_step)
+                # Calculate losses
+                loss = self.criterion(outputs, output_step)
                 last_loss = loss.item()
-                progress.set_postfix({"Loss": last_loss, "Seq indx": seq_i})
-                validation_loss_sum += last_loss
+                train_progress.set_postfix({"Loss": last_loss})
+                loss_sum += last_loss
 
                 # preserve internal LSTM states
                 h0, c0 = hn.detach(), cn.detach()
 
+                # Back-propagation
                 if not is_validation:
                     loss.backward()
-                    optimizer.step()
+                    self.optimizer.step()
 
-        mean_loss = validation_loss_sum / ((seq_i + 1) * (step_i + 1))
-        print(f"\nMean loss: {mean_loss:.6f}, {last_loss=}")
+                train_progress.update(1)
 
-        if is_validation:
-            self._last_mean_vloss = mean_loss
+        # Return mean loss
+        mean_loss = loss_sum / train_progress.total
+
+        return mean_loss
 
     def train(self,
               sequences: list[torch.Tensor],
@@ -88,35 +98,67 @@ class StatePredictionModule:
               epochs: int = 5,
               es_patience: None | int = None,
               n_splits: int = 2):
+        """
+        Train the model
 
-        if es_patience is not None:
-            self._patience_counter = 0
+        :param sequences: A list of sequences to be learnt
+        :param epochs: Number of epochs
+        :param es_patience: Early stopping patience
+        :param n_splits: The number of split for crossvalidation
+        :return:
+        """
+        self.criterion = nn.MSELoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+
+        # Variables to keep track of val loss
+        patience_counter = 0 if es_patience is not None else None
+        min_val_loss_mean = np.inf
+
+        val_losses = []
+        train_losses = []
 
         for epoch in range(epochs):
+            print(f"Epoch {epoch + 1}/{epochs}\n")
+
             kf = KFold(n_splits=n_splits, shuffle=True)
 
-            for train_index, val_index in kf.split(sequences):
+            val_loss_sum = 0
+            train_loss_sum = 0
+
+            for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
                 train_sequences = [sequences[i] for i in train_index]
                 val_sequences = [sequences[i] for i in val_index]
 
                 # Train on sequences
-                progress = tqdm(enumerate(train_sequences), desc=f"Training on {epoch=}")
-                self._forward_sequences(progress, is_validation=False)
+                train_loss = self._forward_sequences(train_sequences, is_validation=False)
 
                 # Track validation loss
-                progress = tqdm(enumerate(val_sequences), desc=f"Validating on {epoch=}")
-                self._forward_sequences(progress, is_validation=True)
+                val_loss = self._forward_sequences(val_sequences, is_validation=True)
+
+                val_loss_sum += val_loss
+                train_loss_sum += train_loss
+
+            val_loss_mean = val_loss_sum / n_splits
+            train_loss_mean = train_loss_sum / n_splits
+
+            val_losses.append(val_loss_mean)
+            train_losses.append(train_loss_mean)
+
+            print(f"\nMean train loss = {train_loss_mean}, mean val loss = {val_loss_mean}")
 
             if es_patience is not None:
-                if self._last_mean_vloss < self._min_mean_vloss:
-                    self._min_mean_vloss = self._last_mean_vloss
-                    self._patience_counter = 0
+                if val_loss_mean < min_val_loss_mean:
+                    min_val_loss_mean = val_loss_mean
+                    patience_counter = 0
                 else:
-                    self._patience_counter += 1
+                    patience_counter += 1
 
-                if self._patience_counter >= es_patience:
+                if patience_counter >= es_patience:
                     print("Early stopping")
                     break
 
-        print(f"{self._last_mean_vloss=:.6f}")
-        self.is_trained = True
+        plt.plot(train_losses, label="Train loss")
+        plt.plot(val_losses, label="Validation loss")
+
+        plt.legend()
+        plt.show()
