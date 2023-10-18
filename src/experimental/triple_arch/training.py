@@ -7,7 +7,7 @@ from src.experimental.triple_arch.archs import StepTimeLSTM
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 
-torch.autograd.set_detect_anomaly(True)
+import pickle as pkl
 
 
 class StatePredictionModule:
@@ -26,12 +26,20 @@ class StatePredictionModule:
                                   output_size=n_attr,
                                   device=device)
 
+        self.model = self.model.to(self.device)
+
         self.criterion = None
         self.optimizer = None
 
+    def load_model(self, path: str):
+        self.model.load_state_dict(torch.load(path))
+
+    def save_model(self, path: str):
+        torch.save(self.model.state_dict(), path)
+
     def _forward_sequences(self,
                            sequences: list[torch.Tensor],
-                           is_validation: bool = False):
+                           is_validation: bool = False) -> float:
         """
         Forward list of sequences through model.
 
@@ -45,6 +53,12 @@ class StatePredictionModule:
 
         # Track overall loss
         loss_sum = 0
+
+        # Select proper mode
+        if is_validation:
+            self.model.eval()
+        else:
+            self.model.train()
 
         # Forward all sequences
         for seq_i, seq in enumerate(sequences):
@@ -162,3 +176,27 @@ class StatePredictionModule:
 
         plt.legend()
         plt.show()
+
+    def predict(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        """
+        Predict next state and return it along with LSTM hidden state.
+        The hidden state contains extracted time information about sequence.
+
+        :param sequence:
+        :return: Predicted state and hidden lstm state
+        """
+        self.model.eval()
+
+        # Initialize hidden states
+        h0 = torch.randn((1, self.model.hidden_size), device=self.device)
+        c0 = torch.randn((1, self.model.hidden_size), device=self.device)
+
+        out = None
+
+        for step in sequence:
+            out, (hn, cn) = self.model.forward(step, h0, c0)
+
+            h0 = hn.detach()
+            c0 = cn.detach()
+
+        return out, (h0, c0)
