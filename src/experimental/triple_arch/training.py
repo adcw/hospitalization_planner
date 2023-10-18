@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn, optim
 from tqdm import tqdm
@@ -8,63 +9,107 @@ import matplotlib.pyplot as plt
 torch.autograd.set_detect_anomaly(True)
 
 
-def train_state_model(sequences: list[torch.Tensor], model: StepTimeLSTM, epochs: int = 5):
-    seq_len = len(sequences)
-    plt_margin = min(seq_len // 2, 3)
+class StatePredictionModule:
+    def __init__(self,
+                 n_attr: int,
+                 hidden_size: int = 256,
 
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+                 device: torch.device = 'cpu'
+                 ):
 
-    loss_history = []
+        self.hidden_size = hidden_size
+        self.device = device
 
-    for epoch in range(epochs):
-        progress = tqdm(enumerate(sequences), desc=f"Epoch {epoch}")
+        self.model = StepTimeLSTM(input_size=n_attr, hidden_size=256, output_size=n_attr, device=device)
+
+        self.is_trained = False
+
+        self._last_mean_vloss = np.inf
+        self._min_mean_vloss = np.inf
+        self._patience_counter = 0
+
+        pass
+
+    def _forward_sequences(self, progress: tqdm,
+                           is_validation: bool = False):
+
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(self.model.parameters(), lr=0.001) if not is_validation else None
+        validation_loss_sum = 0
+        last_loss = None
+
+        seq_i = 1
+        step_i = 1
         for seq_i, seq in progress:
-            h0 = torch.randn((1, model.hidden_size))
-            c0 = torch.randn((1, model.hidden_size))
 
-            step_loss_history = None
-            if seq_i < plt_margin + 1 or seq_len - plt_margin - 1 < seq_i:
-                step_loss_history = []
+            # clear internal LSTM states
+            h0 = torch.randn((1, self.model.hidden_size), device=self.device)
+            c0 = torch.randn((1, self.model.hidden_size), device=self.device)
 
+            # iterate over sequence
             for step_i in range(len(seq) - 1):
+                # get input and output data
                 input_step: torch.Tensor = seq[step_i].clone()
                 output_step: torch.Tensor = seq[step_i + 1].clone()
+                input_step = input_step.expand((1, -1)).to(self.device)
+                output_step = output_step.expand((1, -1)).to(self.device)
 
-                input_step = input_step.expand((1, -1))
-                output_step = output_step.expand((1, -1))
+                if not is_validation:
+                    optimizer.zero_grad()
 
-                optimizer.zero_grad()
-
-                outputs, (hn, cn) = model(input_step, h0, c0)
+                if is_validation:
+                    with torch.no_grad():
+                        outputs, (hn, cn) = self.model(input_step, h0, c0)
+                else:
+                    outputs, (hn, cn) = self.model(input_step, h0, c0)
 
                 loss = criterion(outputs, output_step)
-                progress.set_postfix({"Loss": loss.item()})
+                last_loss = loss.item()
+                progress.set_postfix({"Loss": last_loss, "Seq indx": seq_i})
+                validation_loss_sum += last_loss
 
-                if step_loss_history is not None:
-                    step_loss_history.append(loss.item())
-
+                # preserve internal LSTM states
                 h0, c0 = hn.detach(), cn.detach()
 
-                loss.backward()
-                optimizer.step()
+                if not is_validation:
+                    loss.backward()
+                    optimizer.step()
 
-            if step_loss_history is not None:
-                loss_history.append(step_loss_history)
+        mean_loss = validation_loss_sum / ((seq_i + 1) * (step_i + 1))
+        print(f"\nMean loss: {mean_loss:.6f}, {last_loss=}")
 
-    max_plots = min(len(loss_history), 6)  # Maksymalnie rysujemy 6 wykresów
-    num_rows = max_plots // 2 + max_plots % 2  # Liczba wierszy na podwykresy
-    plt.figure(figsize=(10, 8))
+        if is_validation:
+            self._last_mean_vloss = mean_loss
 
-    for i in range(max_plots):
-        plt.subplot(num_rows, 2, i + 1)  # dwie kolumny, obliczona liczba wierszy
-        loss_data = loss_history[i]
-        plt.plot(loss_data)
-        plt.xlabel('Kroki treningowe')
-        plt.ylabel('Wartość straty')
-        plt.title(f'Wykres Straty {i + 1}')
+    def train(self,
+              train_sequences: list[torch.Tensor],
+              val_sequences: list[torch.Tensor],
 
-    plt.tight_layout()
-    plt.show()
+              epochs: int = 5,
+              es_patience: None | int = None):
 
-    pass
+        if es_patience is not None:
+            self._patience_counter = 0
+
+        for epoch in range(epochs):
+            # Train on sequences
+            progress = tqdm(enumerate(train_sequences), desc=f"Training on {epoch=}")
+            self._forward_sequences(progress, is_validation=False)
+
+            # Track validation loss
+            progress = tqdm(enumerate(val_sequences), desc=f"Validating on {epoch=}")
+            self._forward_sequences(progress, is_validation=True)
+
+            if es_patience is not None:
+                if self._last_mean_vloss < self._min_mean_vloss:
+                    self._min_mean_vloss = self._last_mean_vloss
+                    self._patience_counter = 0
+                else:
+                    self._patience_counter += 1
+
+                if self._patience_counter >= es_patience:
+                    print("Early stopping")
+                    break
+
+        print(f"{self._last_mean_vloss=:.6f}")
+        self.is_trained = True
