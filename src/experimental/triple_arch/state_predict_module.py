@@ -7,8 +7,6 @@ from src.experimental.triple_arch.archs import StepTimeLSTM
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 
-import pickle as pkl
-
 
 class StatePredictionModule:
     def __init__(self,
