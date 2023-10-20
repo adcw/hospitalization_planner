@@ -1,11 +1,21 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from sklearn.model_selection import KFold
 from torch import nn, optim
 from tqdm import tqdm
 
 from src.experimental.triple_arch.archs import StepTimeLSTM
-import matplotlib.pyplot as plt
-from sklearn.model_selection import KFold
+from src.preprocessing.preprocess import normalize_split
+
+
+def seq2tensors(sequences: list[np.ndarray], device: torch.device):
+    tensors = []
+    for seq in sequences:
+        tensor = torch.Tensor(seq)
+        tensor = tensor.to(device)
+        tensors.append(tensor)
+    return tensors
 
 
 class StatePredictionModule:
@@ -104,12 +114,12 @@ class StatePredictionModule:
 
         return mean_loss
 
-    def train(self,
-              sequences: list[torch.Tensor],
+    def evaluate(self,
+                 sequences: list[np.ndarray],
 
-              epochs: int = 5,
-              es_patience: None | int = None,
-              n_splits: int = 2):
+                 epochs: int = 5,
+                 es_patience: None | int = None,
+                 n_splits: int = 2):
         """
         Train the model
 
@@ -140,6 +150,10 @@ class StatePredictionModule:
             for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
                 train_sequences = [sequences[i] for i in train_index]
                 val_sequences = [sequences[i] for i in val_index]
+
+                train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
+                train_sequences = seq2tensors(train_sequences, self.device)
+                val_sequences = seq2tensors(val_sequences, self.device)
 
                 # Train on sequences
                 train_loss = self._forward_sequences(train_sequences, is_validation=False)
