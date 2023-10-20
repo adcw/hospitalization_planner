@@ -37,7 +37,7 @@ def main():
     n_attr = sequences[0].shape[1]
 
     pred_model = StatePredictionModule(n_attr=n_attr, hidden_size=256, device=device)
-    pred_model.evaluate(sequences=sequences[:20], es_patience=2, epochs=30, n_splits=5)
+    pred_model.train(sequences=sequences[:12], es_patience=2, epochs=30, kfold_n_splits=5)
 
     pass
 

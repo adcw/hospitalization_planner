@@ -70,7 +70,7 @@ class Preprocessor:
         return processed_df
 
 
-def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray]):
+def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray] | None):
     """
     Normalize train and validation data.
     Scaler is fit on training data and used both on training and validation data.
@@ -84,8 +84,11 @@ def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray]):
     train_cat_norm = scaler.fit_transform(train_cat)
     train_seq_norm = np.split(train_cat_norm, np.cumsum([seq.shape[0] for seq in train_seq])[:-1])
 
-    val_cat = np.concatenate(val_seq)
-    val_cat_norm = scaler.transform(val_cat)
-    val_seq_norm = np.split(val_cat_norm, np.cumsum([seq.shape[0] for seq in val_seq])[:-1])
+    if val_seq is not None:
+        val_cat = np.concatenate(val_seq)
+        val_cat_norm = scaler.transform(val_cat)
+        val_seq_norm = np.split(val_cat_norm, np.cumsum([seq.shape[0] for seq in val_seq])[:-1])
+    else:
+        val_seq_norm = None
 
     return train_seq_norm, val_seq_norm, scaler

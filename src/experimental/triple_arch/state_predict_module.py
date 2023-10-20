@@ -56,7 +56,7 @@ class StatePredictionModule:
         :return:
         """
         train_progress = tqdm(sequences,
-                              # desc=f"Training on {split_i + 1}/{n_splits} split",
+                              # desc=f"Training on {split_i + 1}/{kfold_n_splits} split",
                               total=sum([len(s) - 1 for s in sequences]))
 
         # Track overall loss
@@ -114,67 +114,84 @@ class StatePredictionModule:
 
         return mean_loss
 
-    def evaluate(self,
-                 sequences: list[np.ndarray],
+    def train(self,
+              sequences: list[np.ndarray],
 
-                 epochs: int = 5,
-                 es_patience: None | int = None,
-                 n_splits: int = 2):
+              epochs: int = 20,
+              es_patience: None | int = 5,
+              kfold_n_splits: int | None = 5
+              ):
         """
         Train the model
 
         :param sequences: A list of sequences to be learnt
         :param epochs: Number of epochs
         :param es_patience: Early stopping patience
-        :param n_splits: The number of split for crossvalidation
-        :return:
+        :param kfold_n_splits: The number of split for cross-validation. If none, there is no CV performed.
+        :return: Return scaler if there is no kfold_n_splits argument, otherwise return None.
         """
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
         # Variables to keep track of val loss
         patience_counter = 0 if es_patience is not None else None
-        min_val_loss_mean = np.inf
+
+        min_target_loss_mean = np.inf
 
         val_losses = []
         train_losses = []
+        scaler = None
 
+        # Run epochs
         for epoch in range(epochs):
             print(f"Epoch {epoch + 1}/{epochs}\n")
 
-            kf = KFold(n_splits=n_splits, shuffle=True)
+            # We perform KFold evaluation
+            if kfold_n_splits is not None:
+                kf = KFold(n_splits=kfold_n_splits, shuffle=True)
 
-            val_loss_sum = 0
-            train_loss_sum = 0
+                val_loss_sum = 0
+                train_loss_sum = 0
 
-            for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
-                train_sequences = [sequences[i] for i in train_index]
-                val_sequences = [sequences[i] for i in val_index]
+                for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
+                    train_sequences = [sequences[i] for i in train_index]
+                    val_sequences = [sequences[i] for i in val_index]
 
-                train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
+                    train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
+                    train_sequences = seq2tensors(train_sequences, self.device)
+                    val_sequences = seq2tensors(val_sequences, self.device)
+
+                    # Train on sequences
+                    train_loss = self._forward_sequences(train_sequences, is_validation=False)
+
+                    # Track validation loss
+                    val_loss = self._forward_sequences(val_sequences, is_validation=True)
+
+                    val_loss_sum += val_loss
+                    train_loss_sum += train_loss
+
+                val_loss_mean = val_loss_sum / kfold_n_splits
+                train_loss_mean = train_loss_sum / kfold_n_splits
+
+                val_losses.append(val_loss_mean)
+                train_losses.append(train_loss_mean)
+
+                print(f"\nMean train loss = {train_loss_mean}, mean val loss = {val_loss_mean}")
+                curr_target_loss_mean = val_loss_mean
+
+            # We perform regular training
+            else:
+                train_sequences, _, scaler = normalize_split(sequences, None)
                 train_sequences = seq2tensors(train_sequences, self.device)
-                val_sequences = seq2tensors(val_sequences, self.device)
 
-                # Train on sequences
+                # Train
                 train_loss = self._forward_sequences(train_sequences, is_validation=False)
-
-                # Track validation loss
-                val_loss = self._forward_sequences(val_sequences, is_validation=True)
-
-                val_loss_sum += val_loss
-                train_loss_sum += train_loss
-
-            val_loss_mean = val_loss_sum / n_splits
-            train_loss_mean = train_loss_sum / n_splits
-
-            val_losses.append(val_loss_mean)
-            train_losses.append(train_loss_mean)
-
-            print(f"\nMean train loss = {train_loss_mean}, mean val loss = {val_loss_mean}")
+                train_losses.append(train_loss)
+                curr_target_loss_mean = train_loss
 
             if es_patience is not None:
-                if val_loss_mean < min_val_loss_mean:
-                    min_val_loss_mean = val_loss_mean
+                if curr_target_loss_mean < min_target_loss_mean:
+                    min_target_loss_mean = curr_target_loss_mean
                     patience_counter = 0
                 else:
                     patience_counter += 1
@@ -188,6 +205,8 @@ class StatePredictionModule:
 
         plt.legend()
         plt.show()
+
+        return scaler
 
     def predict(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """
@@ -205,10 +224,11 @@ class StatePredictionModule:
 
         out = None
 
-        for step in sequence:
-            out, (hn, cn) = self.model.forward(step, h0, c0)
+        with torch.no_grad():
+            for step in sequence:
+                out, (hn, cn) = self.model.forward(step, h0, c0)
 
-            h0 = hn.detach()
-            c0 = cn.detach()
+                h0 = hn.detach()
+                c0 = cn.detach()
 
         return out, (h0, c0)
