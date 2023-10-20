@@ -21,16 +21,19 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device):
 class StatePredictionModule:
     def __init__(self,
                  n_attr: int,
-                 hidden_size: int = 256,
+                 hidden_size: int = 128,
+                 lstm_n_layers: int = 1,
 
                  device: torch.device = 'cpu'
                  ):
 
         self.hidden_size = hidden_size
+        self.ltsm_num_layers = lstm_n_layers
         self.device = device
 
         self.model = StepTimeLSTM(input_size=n_attr,
                                   hidden_size=self.hidden_size,
+                                  lstm_num_layers=self.ltsm_num_layers,
                                   output_size=n_attr,
                                   device=device)
 
@@ -72,8 +75,8 @@ class StatePredictionModule:
         for seq_i, seq in enumerate(sequences):
 
             # Clear internal LSTM states
-            h0 = torch.randn((1, self.model.hidden_size), device=self.device)
-            c0 = torch.randn((1, self.model.hidden_size), device=self.device)
+            h0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
+            c0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
 
             # Iterate over sequence
             for step_i in range(len(seq) - 1):
@@ -219,8 +222,8 @@ class StatePredictionModule:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.randn((1, self.model.hidden_size), device=self.device)
-        c0 = torch.randn((1, self.model.hidden_size), device=self.device)
+        h0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
+        c0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
 
         out = None
 

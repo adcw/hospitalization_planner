@@ -8,6 +8,9 @@ class StepTimeLSTM(nn.Module):
                  input_size: int,
                  hidden_size: int,
                  output_size: int,
+
+                 lstm_num_layers: int = 2,
+
                  device: torch.device = 'cpu',
 
                  activation=F.sigmoid,
@@ -24,10 +27,11 @@ class StepTimeLSTM(nn.Module):
         self.fccn_dropout_p = fccn_dropout_p
         self.fccn_activation = fccn_activation
         self.activation = activation
+        self.lstm_num_layers = lstm_num_layers
 
         self.hidden_size = hidden_size
         self.output_size = output_size
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device)
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device, num_layers=self.lstm_num_layers)
 
         self.fccn = FCCN(input_size=self.hidden_size,
                          hidden_sizes=self.fccn_arch,
