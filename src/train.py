@@ -7,26 +7,17 @@ from src.preprocessing.preprocess import Preprocessor
 # from src.preprocessing.preprocess import preprocess_data
 from src.preprocessing.sequences import make_sequences
 
-DATA_RAW_PATH = "../data/neonatologia.txt"
-DATA_STRIPPED_PATH = "../data/neonatologia_stripped.txt"
-COLNAMES_PATH = "../data/colnames.py"
+CSV_PATH = '../data/input.csv'
 
 
-def main():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # if not os.path.isfile(data_path):
-    #     strip_data(DATA_STRIPPED_PATH, DATA_STRIPPED_PATH)
-    #
-    # if not os.path.isfile(COLNAMES_PATH):
-    #     create_header_constants(DATA_STRIPPED_PATH, COLNAMES_PATH)
-    #     return
+def main(torch_device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+    device = torch_device
 
     # read data
-    whole_df = pd.read_csv(DATA_STRIPPED_PATH, sep=" ", dtype=object)
+    whole_df = pd.read_csv(CSV_PATH, dtype=object)
 
     # preprocess: one hot, impute
-    onehot_cols = [c.POSIEW_SEPSA, c.UREOPLAZMA, c.RDS, c.TYPE_RDS, c.PDA, c.RESPCODE]
+    onehot_cols = [c.SEPSIS_CULTURE, c.UREAPLASMA, c.RDS, c.RDS_TYPE, c.PDA, c.RESPCODE]
 
     preprocessor = Preprocessor()
     preprocessed_df = preprocessor.transform(whole_df, onehot_cols=onehot_cols, impute=True)
