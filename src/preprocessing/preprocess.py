@@ -5,6 +5,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 from data.chosen_colnames import colnames as COLS
 
+import data.colnames as c
+
 
 class Preprocessor:
     def __init__(self):
@@ -92,3 +94,65 @@ def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray] | Non
         val_seq_norm = None
 
     return train_seq_norm, val_seq_norm, scaler
+
+
+class OneHotEncoder:
+    def __init__(self, columns: list[str]):
+        """
+        Create encoder class.\n
+        **Note**: It can be used to encode and decode any dataframe,
+        as long as the column names and encoded labels are same.
+
+        :param columns: List of column names to be encoded
+        """
+        self.columns = columns
+        self.encoded_columns = []
+        self.mapping = {}
+        self.inverse_mapping = {}
+        self.original_column_order = None
+
+    def transform(self, dataframe: pd.DataFrame):
+        transformed_df = dataframe.copy()
+
+        self.original_column_order = list(dataframe.columns)
+
+        for column in self.columns:
+            encoded = pd.get_dummies(dataframe[column], prefix=column, prefix_sep='__', dtype=float)
+            self.encoded_columns.extend(encoded.columns)
+            self.mapping[column] = encoded.columns
+            transformed_df = pd.concat([transformed_df, encoded], axis=1)
+            transformed_df = transformed_df.drop(column, axis=1)
+
+        return transformed_df
+
+    def inverse_transform(self, dataframe: pd.DataFrame):
+        original_df = dataframe.copy()
+
+        for column in self.encoded_columns:
+            original_column = column.split('__')[0]
+
+            if original_column not in self.inverse_mapping:
+                self.inverse_mapping[original_column] = [col for col in dataframe.columns if
+                                                         col.startswith(original_column + '__')]
+
+                original_df[original_column] = original_df[self.inverse_mapping[original_column]].idxmax(axis=1).apply(
+                    lambda x: x.split("__")[1])
+
+                original_df = original_df.drop(self.inverse_mapping[original_column], axis=1)
+
+        original_df = original_df[self.original_column_order]
+
+        return original_df
+
+
+if __name__ == '__main__':
+    df = pd.read_csv("../../data/input.csv")
+
+    onehot_cols = [c.SEPSIS_CULTURE, c.RDS_TYPE]
+
+    encoder = OneHotEncoder(onehot_cols)
+
+    enc = encoder.transform(df)
+    dec = encoder.inverse_transform(enc)
+
+    pass
