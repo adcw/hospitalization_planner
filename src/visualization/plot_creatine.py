@@ -15,7 +15,7 @@ if __name__ == '__main__':
     whole_df = pd.read_csv(DATA_STRIPPED_PATH, sep=" ", dtype=object)
 
     # preprocess: one hot, impute
-    onehot_cols = [c.POSIEW_SEPSA, c.UREOPLAZMA, c.RDS, c.TYPE_RDS, c.PDA, c.RESPCODE]
+    onehot_cols = [c.SEPSIS_CULTURE, c.UREAPLASMA, c.RDS, c.RDS_TYPE, c.PDA, c.RESPCODE]
 
     preprocessor = Preprocessor()
     preprocessed_df = preprocessor.transform(whole_df, onehot_cols=onehot_cols)
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     scaled_df = pd.DataFrame(scaled_vals)
     scaled_df.columns = preprocessed_df.columns
 
-    patients = scaled_df.groupby([c.PATIENTID])
+    patients = scaled_df.groupby([c.PATIENT_ID])
 
     for _, pat in patients:
         if pat[c.CREATININE].isna().sum() == 0:
