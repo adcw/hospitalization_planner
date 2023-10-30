@@ -25,7 +25,7 @@ class Preprocessor:
     def fit_transform(
             self,
             input_df: pd.DataFrame,
-    ) -> list[torch.Tensor]:
+    ) -> list[np.ndarray]:
         exclude_cols = self.group_cols.copy()
         exclude_cols.append(self.group_sort_col)
 
@@ -41,12 +41,12 @@ class Preprocessor:
 
         groups = df.groupby(self.group_cols, sort=False)
 
-        tensors = []
+        sequences = []
         for _, g in groups:
             g.sort_values(by=self.group_sort_col, inplace=True)
-            tensors.append(torch.Tensor(g.drop(columns=exclude_cols).values.astype(float)))
+            sequences.append(g.drop(columns=exclude_cols).values.astype(float))
 
-        return tensors
+        return sequences
 
     def inverse_transform(self, tensors: list[torch.Tensor]) -> list[pd.DataFrame]:
         original_cols = self.transform_data.onehot_encoder.original_column_order.copy()

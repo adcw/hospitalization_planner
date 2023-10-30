@@ -6,7 +6,7 @@ from torch import nn, optim
 from tqdm import tqdm
 
 from src.nn.archs import StepTimeLSTM
-from src.preprocessing.preprocess import normalize_split
+from src.preprocessing import normalize_split
 
 
 def seq2tensors(sequences: list[np.ndarray], device: torch.device):

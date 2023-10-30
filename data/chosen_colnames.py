@@ -22,15 +22,18 @@ colnames = [
     C.UREAPLASMA_CULTURE,                        # ['YES', 'NO']
 
     C.RDS_TYPE,                                 # ['1' '2' '3' '4' 'NO']
-    C.GENERAL_SURFRACTANT,                       # ['YES', 'NO']
+    C.GENERAL_SURFACTANT,                       # ['YES', 'NO']
     C.RTG_PDA,                                  # ['YES', 'NO']
     C.PDA_CLOSED,                               # ['YES', 'NO']
-    C.RESPCODE,                                 # ['HFO' 'IMV' 'WLASNY' 'n-CPAP' 't-CPAP']
+    # C.RESPCODE,                                 # ['HFO' 'IMV' 'WLASNY' 'n-CPAP' 't-CPAP']
 
     #### OUTPUT DATA                            # ['YES', 'NO']
+    # Ventilation
+    C.MAP1, C.MAP2, C.MAP3, C.CPAP,
+
     # Drugs
     C.DOPAMINE, C.DOBUTAMINE, C.LEVONOR, C.ADRENALINE, C.SURFACTANT,
-    C.MAP1, C.MAP2, C.MAP3,
+
     C.PENICILINE, C.PENICILINE_2,
     C.MACROLIDE, C.CEPHALOSPORIN, C.AMINOGLYCOSIDE, C.CARBAPENEM, C.CEPHALOSPORINE34, C.GLYCOPEPTIDE
 ]
