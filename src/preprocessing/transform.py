@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 
-from src.preprocessing.encoding import OneHotEncoder
+from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 
 
 @dataclass
@@ -30,13 +29,13 @@ def transform(
     :return:
     """
     df_cols = input_df.columns
-    onehot_encoder = OneHotEncoder()
+    onehot_encoder = OneHotEncoder(onehot_cols)
 
     processed_df = input_df.copy()
 
     # onehot encode
     if onehot_cols is not None:
-        processed_df = onehot_encoder.fit_transform(processed_df, onehot_cols)
+        processed_df = onehot_encoder.fit_transform(processed_df)
 
     processed_df = processed_df.astype(float)
 
