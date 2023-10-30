@@ -35,7 +35,7 @@ class Preprocessor:
         self.transform_data = data
         self.group_cols = group_cols
 
-        groups = df.groupby(self.group_cols)
+        groups = df.groupby(self.group_cols, sort=False)
 
         tensors = []
         for _, g in groups:
