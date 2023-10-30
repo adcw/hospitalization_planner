@@ -30,7 +30,7 @@ if __name__ == '__main__':
     onehot_cols = [c.SEPSIS_CULTURE, c.RDS_TYPE, c.RESPCODE]
 
     preprocessor = Preprocessor()
-    preprocessed_df = preprocessor.transform(df, onehot_cols=onehot_cols)
+    preprocessed_df = preprocessor.fit_transform(df, onehot_cols=onehot_cols)
 
     # preprocessed_df.drop(columns=[c.DATE_ID, c.PATIENT_ID], inplace=True)
 
