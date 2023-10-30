@@ -18,7 +18,7 @@ if __name__ == '__main__':
     onehot_cols = [c.SEPSIS_CULTURE, c.UREAPLASMA, c.RDS, c.RDS_TYPE, c.PDA, c.RESPCODE]
 
     preprocessor = Preprocessor()
-    preprocessed_df = preprocessor.transform(whole_df, onehot_cols=onehot_cols)
+    preprocessed_df = preprocessor.fit_transform(whole_df, onehot_cols=onehot_cols)
 
     scaler = MinMaxScaler()
     scaled_vals = scaler.fit_transform(preprocessed_df)
