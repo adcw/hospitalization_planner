@@ -34,11 +34,6 @@ def transform(
 
     processed_df = input_df.copy()
 
-    # replace literals with values
-    processed_df.replace("YES", 1., inplace=True)
-    processed_df.replace("NO", 0., inplace=True)
-    processed_df.replace("MISSING", np.NAN, inplace=True)
-
     # onehot encode
     if onehot_cols is not None:
         processed_df = onehot_encoder.fit_transform(processed_df, onehot_cols)
