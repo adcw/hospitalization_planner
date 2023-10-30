@@ -11,10 +11,10 @@ class OneHotEncoder:
         The name of columns and their categorical value
         should be the same in both fit_transform and inverse_transform calls.
         """
-        self.columns: Optional[list[str]]  = None
-        self.encoded_columns:  Optional[list[str]] = []
+        # learnable fields
+        self.columns: Optional[list[str]] = None
+        self.encoded_columns: Optional[list[str]] = []
         self.mapping: dict = {}
-        self.inverse_mapping: dict = {}
         self.original_column_order: Optional[list[str]] = None
 
     def fit_transform(self, dataframe: pd.DataFrame, columns: list[str]):
@@ -47,18 +47,19 @@ class OneHotEncoder:
         :return: Regular dataframe
         """
         original_df = dataframe.copy()
+        inverse_mapping: dict = {}
 
         for column in self.encoded_columns:
             original_column = column.split('__')[0]
 
-            if original_column not in self.inverse_mapping:
-                self.inverse_mapping[original_column] = [col for col in dataframe.columns if
-                                                         col.startswith(original_column + '__')]
+            if original_column not in inverse_mapping:
+                inverse_mapping[original_column] = [col for col in dataframe.columns if
+                                                    col.startswith(original_column + '__')]
 
-                original_df[original_column] = original_df[self.inverse_mapping[original_column]].idxmax(axis=1).apply(
+                original_df[original_column] = original_df[inverse_mapping[original_column]].idxmax(axis=1).apply(
                     lambda x: x.split("__")[1])
 
-                original_df = original_df.drop(self.inverse_mapping[original_column], axis=1)
+                original_df = original_df.drop(inverse_mapping[original_column], axis=1)
 
         original_df = original_df[self.original_column_order]
 
