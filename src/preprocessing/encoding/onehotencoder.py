@@ -4,7 +4,7 @@ import pandas as pd
 
 
 class OneHotEncoder:
-    def __init__(self):
+    def __init__(self, columns: list[str]):
         """
         Create encoder class.\n
         **Note**: It can be used to encode and decode any dataframe.
@@ -12,20 +12,20 @@ class OneHotEncoder:
         should be the same in both fit_transform and inverse_transform calls.
         """
         # learnable fields
+        self.columns = columns
+
         self.columns: Optional[list[str]] = None
         self.encoded_columns: Optional[list[str]] = []
         self.mapping: dict = {}
         self.original_column_order: Optional[list[str]] = None
 
-    def fit_transform(self, dataframe: pd.DataFrame, columns: list[str]):
+    def fit_transform(self, dataframe: pd.DataFrame):
         """
         One hot encode chosen columns of dataframe. The rest remains unchanged.
         :param dataframe: Dataframe to be transformed
-        :param columns: Columns to be one-hot encoded.
+        :param columns: Columns to be one-hot _transform_result.
         :return: Result of transformation
         """
-        self.columns = columns
-
         transformed_df = dataframe.copy()
 
         self.original_column_order = list(dataframe.columns)
@@ -41,9 +41,9 @@ class OneHotEncoder:
 
     def inverse_transform(self, dataframe: pd.DataFrame):
         """
-        Inverse transform on-hot encoded dataframe.\n
-        The format will be the same as the input dataframe for transform operation.
-        :param dataframe: One-hot encoded dataframe
+        Inverse _transform_result on-hot _transform_result dataframe.\n
+        The format will be the same as the input dataframe for _transform_result operation.
+        :param dataframe: One-hot _transform_result dataframe
         :return: Regular dataframe
         """
         original_df = dataframe.copy()
