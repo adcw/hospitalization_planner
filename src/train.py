@@ -1,7 +1,9 @@
+import numpy as np
 import pandas as pd
 import torch
 
 import data.colnames as c
+from src.nn import StatePredictionModule
 from src.preprocessing import Preprocessor
 
 CSV_PATH = '../data/input.csv'
@@ -15,22 +17,23 @@ def main():
     # read data
     whole_df = pd.read_csv(CSV_PATH, dtype=object)
 
+    # replace literals with values
+    whole_df.replace("YES", 1., inplace=True)
+    whole_df.replace("NO", 0., inplace=True)
+    whole_df.replace("MISSING", np.NAN, inplace=True)
+
     # preprocess: one hot, impute
     onehot_cols = [c.SEPSIS_CULTURE, c.UREAPLASMA, c.RDS, c.RDS_TYPE, c.PDA, c.RESPCODE]
-    impute_dict = {c.CREATININE: [c.LEVONOR, c.TOTAL_BILIRUBIN, c.PO2]}
+    impute_dict = {
+        c.CREATININE: [c.LEVONOR, c.TOTAL_BILIRUBIN, c.PO2]
+    }
 
-    preprocessor = Preprocessor()
-    tensors = preprocessor.transform(whole_df,
-                                     group_cols=[c.PATIENT_ID],
-                                     group_sort_col=c.DATE_ID,
-                                     onehot_cols=onehot_cols,
-                                     impute_dict=impute_dict,
-                                     )
+    preprocessor = Preprocessor(group_cols=[c.PATIENT_ID],
+                                group_sort_col=c.DATE_ID,
+                                onehot_cols=onehot_cols,
+                                impute_dict=impute_dict)
 
-    inv_transformed = preprocessor.inverse_transform(tensors[:1])
-
-    # create sequences
-    # sequences = make_sequences(preprocessed_df)
+    sequences = preprocessor.fit_transform(whole_df)
 
     # n_attr = sequences[0].shape[1]
     #
