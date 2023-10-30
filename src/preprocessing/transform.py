@@ -12,14 +12,12 @@ from src.preprocessing.encoding import OneHotEncoder
 class TransformData:
     df_cols: list[str]
     onehot_cols: Optional[list[str]] = None
-    drop_cols: Optional[list[str]] = None
     onehot_encoder: Optional[OneHotEncoder] = None
 
 
 def transform(
         input_df: pd.DataFrame,
         onehot_cols: Optional[list[str]] = None,
-        drop_cols: Optional[list[str]] = None,
         impute_dict: dict[[str], list[str]] | None = None,
 ) -> tuple[pd.DataFrame, TransformData]:
     """
@@ -45,10 +43,6 @@ def transform(
     if onehot_cols is not None:
         processed_df = onehot_encoder.fit_transform(processed_df, onehot_cols)
 
-    # drop cols
-    if drop_cols:
-        processed_df.drop(columns=drop_cols, inplace=True)
-
     processed_df = processed_df.astype(float)
 
     # TODO: How to chose columns for imputation?
@@ -69,5 +63,5 @@ def transform(
             processed_df = pd.DataFrame(sub_df, columns=processed_df.columns)
         pass
 
-    return processed_df, TransformData(df_cols=df_cols, onehot_cols=onehot_cols, drop_cols=drop_cols,
+    return processed_df, TransformData(df_cols=df_cols, onehot_cols=onehot_cols,
                                        onehot_encoder=onehot_encoder)

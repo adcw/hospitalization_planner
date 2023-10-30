@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 
 
@@ -9,11 +11,11 @@ class OneHotEncoder:
         The name of columns and their categorical value
         should be the same in both fit_transform and inverse_transform calls.
         """
-        self.columns = None
-        self.encoded_columns = []
-        self.mapping = {}
-        self.inverse_mapping = {}
-        self.original_column_order = None
+        self.columns: Optional[list[str]]  = None
+        self.encoded_columns:  Optional[list[str]] = []
+        self.mapping: dict = {}
+        self.inverse_mapping: dict = {}
+        self.original_column_order: Optional[list[str]] = None
 
     def fit_transform(self, dataframe: pd.DataFrame, columns: list[str]):
         """

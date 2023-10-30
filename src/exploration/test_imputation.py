@@ -55,9 +55,9 @@ if __name__ == '__main__':
 
     preprocessor = Preprocessor()
     preprocessed_df, _ = transform(incomplete_df,
-                                             onehot_cols=onehot_cols,
-                                             impute_dict=impute_dict,
-                                             )
+                                   onehot_cols=onehot_cols,
+                                   impute_dict=impute_dict,
+                                   )
 
     imputed_indexes = incomplete_df[incomplete_df[c.CREATININE].isna()].index
 

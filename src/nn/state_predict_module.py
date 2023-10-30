@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold
 from torch import nn, optim
 from tqdm import tqdm
 
-from src.experimental.triple_arch.archs import StepTimeLSTM
+from src.nn.archs import StepTimeLSTM
 from src.preprocessing.preprocess import normalize_split
 
 

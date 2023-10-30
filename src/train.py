@@ -17,16 +17,17 @@ def main():
 
     # preprocess: one hot, impute
     onehot_cols = [c.SEPSIS_CULTURE, c.UREAPLASMA, c.RDS, c.RDS_TYPE, c.PDA, c.RESPCODE]
-    drop_cols = [c.DATE_ID]
     impute_dict = {c.CREATININE: [c.LEVONOR, c.TOTAL_BILIRUBIN, c.PO2]}
 
     preprocessor = Preprocessor()
     tensors = preprocessor.transform(whole_df,
                                      group_cols=[c.PATIENT_ID],
+                                     group_sort_col=c.DATE_ID,
                                      onehot_cols=onehot_cols,
                                      impute_dict=impute_dict,
-                                     drop_cols=drop_cols
                                      )
+
+    inv_transformed = preprocessor.inverse_transform(tensors[:1])
 
     # create sequences
     # sequences = make_sequences(preprocessed_df)
