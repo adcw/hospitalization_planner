@@ -4,7 +4,6 @@ import numpy as np
 
 class RankEncoder:
     def __init__(self, ranking: dict):
-
         self.ranking = ranking
 
     def transform(self, df: pd.DataFrame):

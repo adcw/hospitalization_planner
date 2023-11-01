@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
+from src.preprocessing.encoding.rankencoder import RankEncoder
 
 
 @dataclass
@@ -12,16 +13,18 @@ class TransformData:
     df_cols: list[str]
     onehot_cols: Optional[list[str]] = None
     onehot_encoder: Optional[OneHotEncoder] = None
+    rank_encoder: Optional[RankEncoder] = None
 
 
 def transform(
         input_df: pd.DataFrame,
         onehot_cols: Optional[list[str]] = None,
+        rank_dict: dict[[str], list[str]] = None,
         impute_dict: dict[[str], list[str]] | None = None,
 ) -> tuple[pd.DataFrame, TransformData]:
     """
-    :param return_tensor:
-    :param drop_cols:
+    :param rank_dict: Dictionary containing column names as strings
+     and value of array with items ranked from best to worst
     :param input_df:
     :param onehot_cols:
     :param impute_dict: Dictionary containing keys and values. Key denotes imputation target,
@@ -29,13 +32,20 @@ def transform(
     :return:
     """
     df_cols = input_df.columns
-    onehot_encoder = OneHotEncoder(onehot_cols)
+    onehot_encoder = None
+    rank_encoder = None
 
     processed_df = input_df.copy()
 
     # onehot encode
     if onehot_cols is not None:
+        onehot_encoder = OneHotEncoder(onehot_cols)
         processed_df = onehot_encoder.fit_transform(processed_df)
+
+    # rank encode
+    if rank_dict is not None:
+        rank_encoder = RankEncoder(ranking=rank_dict)
+        processed_df = rank_encoder.transform(processed_df)
 
     processed_df = processed_df.astype(float)
 
@@ -58,4 +68,4 @@ def transform(
         pass
 
     return processed_df, TransformData(df_cols=df_cols, onehot_cols=onehot_cols,
-                                       onehot_encoder=onehot_encoder)
+                                       onehot_encoder=onehot_encoder, rank_encoder=rank_encoder)

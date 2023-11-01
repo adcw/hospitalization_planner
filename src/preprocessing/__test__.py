@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-import data.colnames as c
+import data.raw.colnames as c
 from src.preprocessing import Preprocessor
 
-CSV_PATH = '../../data/input.csv'
+CSV_PATH = '../../data/clean/input.csv'
 
 
 def main():

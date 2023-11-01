@@ -13,8 +13,6 @@ class OneHotEncoder:
         """
         # learnable fields
         self.columns = columns
-
-        self.columns: Optional[list[str]] = None
         self.encoded_columns: Optional[list[str]] = []
         self.mapping: dict = {}
         self.original_column_order: Optional[list[str]] = None

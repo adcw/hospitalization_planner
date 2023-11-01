@@ -14,6 +14,7 @@ class Preprocessor:
 
                  onehot_cols: Optional[list[str]] = None,
                  impute_dict: dict[[str], list[str]] | None = None,
+                 rank_dict: dict[[str], list[str]] | None = None,
                  ):
         self.transform_data: Optional[TransformData] = None
 
@@ -21,6 +22,7 @@ class Preprocessor:
         self.group_sort_col = group_sort_col
         self.onehot_cols = onehot_cols
         self.impute_dict = impute_dict
+        self.rank_dict = rank_dict
 
     def fit_transform(
             self,
@@ -32,7 +34,7 @@ class Preprocessor:
         df = input_df[exclude_cols]
 
         transformed, data = transform(input_df=input_df.drop(columns=exclude_cols).copy(), onehot_cols=self.onehot_cols,
-                                      impute_dict=self.impute_dict)
+                                      impute_dict=self.impute_dict, rank_dict=self.rank_dict)
 
         df = pd.concat([df, transformed], axis=1)
         # df.dropna(inplace=True)
@@ -60,6 +62,13 @@ class Preprocessor:
         dfs = []
         for t in tensors:
             df = pd.DataFrame(t, columns=real_cols)
-            dfs.append(self.transform_data.onehot_encoder.inverse_transform(df))
+
+            if self.transform_data.onehot_encoder is not None:
+                df = self.transform_data.onehot_encoder.inverse_transform(df)
+
+            if self.transform_data.rank_encoder is not None:
+                df = self.transform_data.rank_encoder.inverse_transform(df)
+
+            dfs.append(df)
 
         return dfs

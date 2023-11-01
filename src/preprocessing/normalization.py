@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-import data.colnames as c
+import data.raw.colnames as c
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 
 
@@ -31,7 +31,7 @@ def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray] | Non
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("../../data/input.csv")
+    df = pd.read_csv("../../data/clean/input.csv")
 
     onehot_cols = [c.SEPSIS_CULTURE, c.RDS_TYPE]
 
