@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import pandas as pd
-from sklearn.impute import SimpleImputer
+from sklearn.impute import SimpleImputer, KNNImputer
 
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 from src.preprocessing.encoding.rankencoder import RankEncoder
