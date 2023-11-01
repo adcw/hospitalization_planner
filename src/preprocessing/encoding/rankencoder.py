@@ -13,10 +13,10 @@ class RankEncoder:
         for column, values in self.ranking.items():
             n_ranks = len(values)
             ranks = {k: v for v, k in enumerate(values)}
-            step = 1 / n_ranks  # Krok między przedziałami
+            step = 1 / (n_ranks - 1)
 
             processed_df[column] = processed_df[column].map(
-                lambda x: (ranks[x] + 0.5) * step, na_action='ignore')
+                lambda x: ranks[x] * step, na_action='ignore')
 
         return processed_df
 
@@ -25,10 +25,11 @@ class RankEncoder:
 
         for column, values in self.ranking.items():
             n_ranks = len(values)
-            step = 1 / n_ranks
+            step = 1 / (n_ranks - 1)
+            rank_pos = np.array([i * step for i in range(n_ranks)])
 
             reversed_df[column] = reversed_df[column].map(
-                lambda x: values[round((x / step) - 0.5)], na_action='ignore'
+                lambda x: values[np.argmin(np.abs(rank_pos - x))], na_action='ignore'
             )
         return reversed_df
 
