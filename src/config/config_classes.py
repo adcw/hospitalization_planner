@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 import yaml
@@ -14,26 +15,29 @@ class Params(ABC):
 
 
 @dataclass
-class NetParams(Params):
+class ModelParams(Params):
     """
     Class that contains all the data for neural network architecture
     """
-    n_attr: int
     device: torch.device
     hidden_size: int = 64
     n_lstm_layers: int = 2
+    n_steps_predict: int = 1
+    cols_predict: Optional[list[str]] = None
 
     @classmethod
     def from_yaml(cls, yaml_path: str):
         with open(yaml_path, 'r') as yaml_file:
             data = yaml.safe_load(yaml_file)
 
-        n_attr = data['net_params']['n_attr']
-        device = torch.device(data['net_params']['device'])
-        hidden_size = data['net_params']['hidden_size']
-        n_lstm_layers = data['net_params']['n_lstm_layers']
+        device = torch.device(data['model_params']['net_params']['device'])
+        hidden_size = data['model_params']['net_params']['hidden_size']
+        n_lstm_layers = data['model_params']['net_params']['n_lstm_layers']
+        n_steps_predict = data['model_params']['n_steps_predict']
+        cols_predict = data['model_params']['cols_predict']
 
-        return cls(n_attr=n_attr, device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers)
+        return cls(device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers, n_steps_predict=n_steps_predict,
+                   cols_predict=cols_predict)
 
 
 @dataclass

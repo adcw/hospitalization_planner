@@ -7,8 +7,8 @@ from sklearn.model_selection import KFold
 from torch import nn, optim
 from tqdm import tqdm
 
+from src.config.config_classes import ModelParams, TrainParams
 from src.nn.archs import StepTimeLSTM
-from src.config.net_params import NetParams, TrainParams
 from src.preprocessing import normalize_split
 
 
@@ -23,20 +23,23 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device):
 
 class StatePredictionModule:
     def __init__(self,
-                 net_params: NetParams,
-                 n_steps_predict: int = 1,
-                 cols_predict: Optional[list[str]] = None,
+                 params: ModelParams,
+                 n_attr: int
                  ):
+        """
 
-        self.net_params = net_params
+        :param params: Params read from config file
+        """
+        self.n_attr = n_attr
+        self.model_params = params
 
-        self.model = StepTimeLSTM(input_size=self.net_params.n_attr,
-                                  hidden_size=self.net_params.hidden_size,
-                                  lstm_num_layers=self.net_params.n_lstm_layers,
-                                  output_size=self.net_params.n_attr,
-                                  device=self.net_params.device)
+        self.model = StepTimeLSTM(input_size=self.n_attr,
+                                  hidden_size=self.model_params.hidden_size,
+                                  lstm_num_layers=self.model_params.n_lstm_layers,
+                                  output_size=self.n_attr,
+                                  device=self.model_params.device)
 
-        self.model = self.model.to(self.net_params.device)
+        self.model = self.model.to(self.model_params.device)
 
         self.criterion = None
         self.optimizer = None
@@ -74,8 +77,8 @@ class StatePredictionModule:
         for seq_i, seq in enumerate(sequences):
 
             # Clear internal LSTM states
-            h0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
-            c0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
+            h0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+            c0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
 
             # Iterate over sequence
             for step_i in range(len(seq) - 1):
@@ -83,8 +86,8 @@ class StatePredictionModule:
                 # Get input and output data
                 input_step: torch.Tensor = seq[step_i].clone()
                 output_step: torch.Tensor = seq[step_i + 1].clone()
-                input_step = input_step.expand((1, -1)).to(self.net_params.device)
-                output_step = output_step.expand((1, -1)).to(self.net_params.device)
+                input_step = input_step.expand((1, -1)).to(self.model_params.device)
+                output_step = output_step.expand((1, -1)).to(self.model_params.device)
 
                 if not is_validation:
                     self.optimizer.zero_grad()
@@ -130,8 +133,8 @@ class StatePredictionModule:
             val_sequences = [sequences[i] for i in val_index]
 
             train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
-            train_sequences = seq2tensors(train_sequences, self.net_params.device)
-            val_sequences = seq2tensors(val_sequences, self.net_params.device)
+            train_sequences = seq2tensors(train_sequences, self.model_params.device)
+            val_sequences = seq2tensors(val_sequences, self.model_params.device)
 
             # Train on sequences
             train_loss = self._forward_sequences(train_sequences, is_validation=False)
@@ -148,8 +151,8 @@ class StatePredictionModule:
         return train_loss_mean, val_loss_mean
 
     def train(self,
-              sequences: list[np.ndarray],
               params: TrainParams,
+              sequences: list[np.ndarray],
               mode: Literal['train', 'eval'] = 'train'
               ):
         """
@@ -185,7 +188,7 @@ class StatePredictionModule:
             else:
 
                 train_sequences, _, scaler = normalize_split(sequences, None)
-                train_sequences = seq2tensors(train_sequences, self.net_params.device)
+                train_sequences = seq2tensors(train_sequences, self.model_params.device)
 
                 curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False)
                 train_loss_mean = curr_target_loss_mean
@@ -231,8 +234,8 @@ class StatePredictionModule:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
-        c0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
+        h0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+        c0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
 
         out = None
 

@@ -1,8 +1,10 @@
-net_params:
-  n_attr: null
-  device: 'cuda:0'
-  hidden_size: 64
-  n_lstm_layers: 2
+model_params:
+  n_steps_predict: 1
+  cols_predict: null
+  net_params:
+    device: 'cuda:0'
+    hidden_size: 64
+    n_lstm_layers: 2
 train:
   es_patience: 2
   epochs: 30
