@@ -1,3 +1,5 @@
+from typing import Optional, Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -6,6 +8,8 @@ from torch import nn, optim
 from tqdm import tqdm
 
 from src.nn.archs import StepTimeLSTM
+
+from dataclasses import dataclass
 from src.preprocessing import normalize_split
 
 
@@ -18,26 +22,30 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device):
     return tensors
 
 
+@dataclass()
+class NetParams:
+    n_attr: int
+    device: torch.device
+    hidden_size: int = 64
+    n_lstm_layers: int = 2
+
+
 class StatePredictionModule:
     def __init__(self,
-                 n_attr: int,
-                 hidden_size: int = 128,
-                 lstm_n_layers: int = 1,
-
-                 device: torch.device = 'cpu'
+                 net_params: NetParams,
+                 n_steps_predict: int = 1,
+                 cols_predict: Optional[list[str]] = None,
                  ):
 
-        self.hidden_size = hidden_size
-        self.ltsm_num_layers = lstm_n_layers
-        self.device = device
+        self.net_params = net_params
 
-        self.model = StepTimeLSTM(input_size=n_attr,
-                                  hidden_size=self.hidden_size,
-                                  lstm_num_layers=self.ltsm_num_layers,
-                                  output_size=n_attr,
-                                  device=device)
+        self.model = StepTimeLSTM(input_size=self.net_params.n_attr,
+                                  hidden_size=self.net_params.hidden_size,
+                                  lstm_num_layers=self.net_params.n_lstm_layers,
+                                  output_size=self.net_params.n_attr,
+                                  device=self.net_params.device)
 
-        self.model = self.model.to(self.device)
+        self.model = self.model.to(self.net_params.device)
 
         self.criterion = None
         self.optimizer = None
@@ -75,8 +83,8 @@ class StatePredictionModule:
         for seq_i, seq in enumerate(sequences):
 
             # Clear internal LSTM states
-            h0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
-            c0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
+            h0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
+            c0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
 
             # Iterate over sequence
             for step_i in range(len(seq) - 1):
@@ -84,8 +92,8 @@ class StatePredictionModule:
                 # Get input and output data
                 input_step: torch.Tensor = seq[step_i].clone()
                 output_step: torch.Tensor = seq[step_i + 1].clone()
-                input_step = input_step.expand((1, -1)).to(self.device)
-                output_step = output_step.expand((1, -1)).to(self.device)
+                input_step = input_step.expand((1, -1)).to(self.net_params.device)
+                output_step = output_step.expand((1, -1)).to(self.net_params.device)
 
                 if not is_validation:
                     self.optimizer.zero_grad()
@@ -117,20 +125,54 @@ class StatePredictionModule:
 
         return mean_loss
 
+    def _kfold(self,
+               sequences: list[np.ndarray],
+               kfold_n_splits: Optional[int] = 5,
+               ):
+        kf = KFold(n_splits=kfold_n_splits, shuffle=True)
+
+        val_loss_sum = 0
+        train_loss_sum = 0
+
+        for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
+            train_sequences = [sequences[i] for i in train_index]
+            val_sequences = [sequences[i] for i in val_index]
+
+            train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
+            train_sequences = seq2tensors(train_sequences, self.net_params.device)
+            val_sequences = seq2tensors(val_sequences, self.net_params.device)
+
+            # Train on sequences
+            train_loss = self._forward_sequences(train_sequences, is_validation=False)
+
+            # Track validation loss
+            val_loss = self._forward_sequences(val_sequences, is_validation=True)
+
+            val_loss_sum += val_loss
+            train_loss_sum += train_loss
+
+        val_loss_mean = val_loss_sum / kfold_n_splits
+        train_loss_mean = train_loss_sum / kfold_n_splits
+
+        return train_loss_mean, val_loss_mean
+
     def train(self,
               sequences: list[np.ndarray],
 
               epochs: int = 20,
               es_patience: None | int = 5,
-              kfold_n_splits: int | None = 5
+              kfold_n_splits: int = 5,
+
+              mode: Literal['train', 'eval'] = 'train'
               ):
         """
         Train the model
 
+        :param mode:
         :param sequences: A list of sequences to be learnt
         :param epochs: Number of epochs
         :param es_patience: Early stopping patience
-        :param kfold_n_splits: The number of split for cross-validation. If none, there is no CV performed.
+        :param kfold_n_splits: The number of split for cross-validation.
         :return: Return scaler if there is no kfold_n_splits argument, otherwise return None.
         """
         self.criterion = nn.MSELoss()
@@ -150,47 +192,24 @@ class StatePredictionModule:
             print(f"Epoch {epoch + 1}/{epochs}\n")
 
             # We perform KFold evaluation
-            if kfold_n_splits is not None:
-                kf = KFold(n_splits=kfold_n_splits, shuffle=True)
-
-                val_loss_sum = 0
-                train_loss_sum = 0
-
-                for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
-                    train_sequences = [sequences[i] for i in train_index]
-                    val_sequences = [sequences[i] for i in val_index]
-
-                    train_sequences, val_sequences, _ = normalize_split(train_sequences, val_sequences)
-                    train_sequences = seq2tensors(train_sequences, self.device)
-                    val_sequences = seq2tensors(val_sequences, self.device)
-
-                    # Train on sequences
-                    train_loss = self._forward_sequences(train_sequences, is_validation=False)
-
-                    # Track validation loss
-                    val_loss = self._forward_sequences(val_sequences, is_validation=True)
-
-                    val_loss_sum += val_loss
-                    train_loss_sum += train_loss
-
-                val_loss_mean = val_loss_sum / kfold_n_splits
-                train_loss_mean = train_loss_sum / kfold_n_splits
-
-                val_losses.append(val_loss_mean)
-                train_losses.append(train_loss_mean)
-
-                print(f"\nMean train loss = {train_loss_mean}, mean val loss = {val_loss_mean}")
-                curr_target_loss_mean = val_loss_mean
+            if mode == 'eval':
+                train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences, kfold_n_splits=kfold_n_splits)
 
             # We perform regular training
             else:
-                train_sequences, _, scaler = normalize_split(sequences, None)
-                train_sequences = seq2tensors(train_sequences, self.device)
 
-                # Train
-                train_loss = self._forward_sequences(train_sequences, is_validation=False)
-                train_losses.append(train_loss)
-                curr_target_loss_mean = train_loss
+                train_sequences, _, scaler = normalize_split(sequences, None)
+                train_sequences = seq2tensors(train_sequences, self.net_params.device)
+
+                curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False)
+                train_loss_mean = curr_target_loss_mean
+
+            val_losses.append(curr_target_loss_mean)
+            train_losses.append(train_loss_mean)
+
+            print(
+                f"\nMean train loss = {train_loss_mean}, "
+                f"mean val loss = {curr_target_loss_mean if mode == 'eval' else '-'}")
 
             if es_patience is not None:
                 if curr_target_loss_mean < min_target_loss_mean:
@@ -211,7 +230,11 @@ class StatePredictionModule:
 
         return scaler
 
-    def predict(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    def predict(self):
+
+        pass
+
+    def predict_raw(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """
         Predict next state and return it along with LSTM hidden state.
         The hidden state contains extracted time information about sequence.
@@ -222,8 +245,8 @@ class StatePredictionModule:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
-        c0 = torch.randn((self.ltsm_num_layers, self.model.hidden_size), device=self.device)
+        h0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
+        c0 = torch.randn((self.net_params.n_lstm_layers, self.model.hidden_size), device=self.net_params.device)
 
         out = None
 

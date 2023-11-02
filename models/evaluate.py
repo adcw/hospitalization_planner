@@ -1,7 +1,7 @@
 import torch
 
 from models.utils import get_sequences
-from src.nn import StatePredictionModule
+from src.nn import StatePredictionModule, NetParams
 
 
 def main():
@@ -9,9 +9,11 @@ def main():
     sequences, preprocessor = get_sequences()
 
     n_attr = sequences[0].shape[1]
-    #
-    pred_model = StatePredictionModule(n_attr=n_attr, hidden_size=64, device=torch_device, lstm_n_layers=2)
-    pred_model.train(sequences=sequences[:12], es_patience=2, epochs=30, kfold_n_splits=5)
+
+    params = NetParams(n_attr=n_attr, device=torch_device, hidden_size=64, n_lstm_layers=2)
+    pred_model = StatePredictionModule(net_params=params)
+
+    pred_model.train(sequences=sequences[:10], es_patience=2, epochs=30, kfold_n_splits=5, mode='eval')
 
     pass
 
