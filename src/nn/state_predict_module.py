@@ -8,8 +8,7 @@ from torch import nn, optim
 from tqdm import tqdm
 
 from src.nn.archs import StepTimeLSTM
-
-from dataclasses import dataclass
+from src.config.net_params import NetParams, TrainParams
 from src.preprocessing import normalize_split
 
 
@@ -20,14 +19,6 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device):
         tensor = tensor.to(device)
         tensors.append(tensor)
     return tensors
-
-
-@dataclass()
-class NetParams:
-    n_attr: int
-    device: torch.device
-    hidden_size: int = 64
-    n_lstm_layers: int = 2
 
 
 class StatePredictionModule:
@@ -158,28 +149,22 @@ class StatePredictionModule:
 
     def train(self,
               sequences: list[np.ndarray],
-
-              epochs: int = 20,
-              es_patience: None | int = 5,
-              kfold_n_splits: int = 5,
-
+              params: TrainParams,
               mode: Literal['train', 'eval'] = 'train'
               ):
         """
         Train the model
 
+        :param params:
         :param mode:
         :param sequences: A list of sequences to be learnt
-        :param epochs: Number of epochs
-        :param es_patience: Early stopping patience
-        :param kfold_n_splits: The number of split for cross-validation.
         :return: Return scaler if there is no kfold_n_splits argument, otherwise return None.
         """
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
         # Variables to keep track of val loss
-        patience_counter = 0 if es_patience is not None else None
+        patience_counter = 0 if params.es_patience is not None else None
 
         min_target_loss_mean = np.inf
 
@@ -188,12 +173,13 @@ class StatePredictionModule:
         scaler = None
 
         # Run epochs
-        for epoch in range(epochs):
-            print(f"Epoch {epoch + 1}/{epochs}\n")
+        for epoch in range(params.epochs):
+            print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # We perform KFold evaluation
             if mode == 'eval':
-                train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences, kfold_n_splits=kfold_n_splits)
+                train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences,
+                                                                     kfold_n_splits=params.eval_n_splits)
 
             # We perform regular training
             else:
@@ -211,14 +197,14 @@ class StatePredictionModule:
                 f"\nMean train loss = {train_loss_mean}, "
                 f"mean val loss = {curr_target_loss_mean if mode == 'eval' else '-'}")
 
-            if es_patience is not None:
+            if params.es_patience is not None:
                 if curr_target_loss_mean < min_target_loss_mean:
                     min_target_loss_mean = curr_target_loss_mean
                     patience_counter = 0
                 else:
                     patience_counter += 1
 
-                if patience_counter >= es_patience:
+                if patience_counter >= params.es_patience:
                     print("Early stopping")
                     break
 

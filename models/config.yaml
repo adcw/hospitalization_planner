@@ -1,0 +1,9 @@
+net_params:
+  n_attr: null
+  device: 'cuda:0'
+  hidden_size: 64
+  n_lstm_layers: 2
+train:
+  es_patience: 2
+  epochs: 30
+  eval_n_splits: 5
