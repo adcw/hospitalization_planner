@@ -1,11 +1,15 @@
 model_params:
-  n_steps_predict: 1
-  cols_predict: null
+  n_steps_predict: 5 #How many future steps we predict?
+  cols_predict: [ "respiration" ] #Null value means we are predicting all fields
   net_params:
-    device: 'cuda:0'
+    device: 'cuda'
     hidden_size: 64
     n_lstm_layers: 2
+    fccn_arch: [ 32, 32, 32, 32, 32 ]
+    fccn_dropout_p: 0.2
+    fccn_activation: 'relu'
+    #Add learning rate and other params for network
 train:
-  es_patience: 2
+  es_patience: 5
   epochs: 30
-  eval_n_splits: 5
+  eval_n_splits: 5 #Number of KFolds split

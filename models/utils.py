@@ -8,7 +8,7 @@ from src.preprocessing import Preprocessor
 CSV_PATH = '../data/clean/input.csv'
 
 
-def get_sequences():
+def get_sequences() -> tuple[list[pd.DataFrame], Preprocessor]:
     # read data
     whole_df = pd.read_csv(CSV_PATH, dtype=object)
 

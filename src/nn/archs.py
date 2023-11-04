@@ -9,7 +9,7 @@ class StepTimeLSTM(nn.Module):
                  hidden_size: int,
                  output_size: int,
 
-                 lstm_num_layers: int = 2,
+                 n_lstm_layers: int = 2,
 
                  device: torch.device = 'cpu',
 
@@ -27,7 +27,7 @@ class StepTimeLSTM(nn.Module):
         self.fccn_dropout_p = fccn_dropout_p
         self.fccn_activation = fccn_activation
         self.activation = activation
-        self.lstm_num_layers = lstm_num_layers
+        self.lstm_num_layers = n_lstm_layers
 
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -61,7 +61,7 @@ class FCCN(nn.Module):
                  output_size: int,
                  dropout_rate: float = 0.1,
 
-                 activation=F.tanh,
+                 activation=F.relu,
                  device: torch.device = 'cpu'
                  ):
         super(FCCN, self).__init__()

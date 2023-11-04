@@ -7,12 +7,12 @@ CONFIG_FILE_PATH = "./config.yaml"
 
 def main():
     sequences, preprocessor = get_sequences()
-    sequences = sequences[:6]
+    sequences = sequences[:10]
 
     train_seq = sequences[:-1]
     test_seq = sequences[-1]
 
-    pred_model = StatePredictionModule(params=ModelParams.from_yaml(CONFIG_FILE_PATH), n_attr=sequences[0].shape[1])
+    pred_model = StatePredictionModule(params=ModelParams.from_yaml(CONFIG_FILE_PATH), n_attr_in=sequences[0].shape[1])
 
     pred_model.train(sequences=train_seq, mode='train', params=TrainParams.from_yaml(CONFIG_FILE_PATH))
 

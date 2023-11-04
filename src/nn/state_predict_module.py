@@ -2,6 +2,7 @@ from typing import Optional, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 from sklearn.model_selection import KFold
 from torch import nn, optim
@@ -24,35 +25,37 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device):
 class StatePredictionModule:
     def __init__(self,
                  params: ModelParams,
-                 n_attr: int
+                 n_attr_in: int
                  ):
         """
 
         :param params: Params read from config file
         """
-        self.n_attr = n_attr
+        self.n_attr_in = n_attr_in
+        self.n_attr_out = len(params.cols_predict) if params.cols_predict is not None else n_attr_in
         self.model_params = params
 
-        self.model = StepTimeLSTM(input_size=self.n_attr,
+        self.model = StepTimeLSTM(input_size=self.n_attr_in,
                                   hidden_size=self.model_params.hidden_size,
-                                  lstm_num_layers=self.model_params.n_lstm_layers,
-                                  output_size=self.n_attr,
-                                  device=self.model_params.device)
+                                  n_lstm_layers=self.model_params.n_lstm_layers,
+                                  output_size=self.n_attr_out * self.model_params.n_steps_predict,
+                                  device=self.model_params.device,
+                                  fccn_arch=self.model_params.fccn_arch,
+                                  fccn_dropout_p=self.model_params.fccn_dropout_p)
 
         self.model = self.model.to(self.model_params.device)
+        self.target_col_indexes = None
 
         self.criterion = None
         self.optimizer = None
 
-    def load_model(self, path: str):
-        self.model.load_state_dict(torch.load(path))
-
-    def save_model(self, path: str):
-        torch.save(self.model.state_dict(), path)
+        self.scaler = None
 
     def _forward_sequences(self,
                            sequences: list[torch.Tensor],
-                           is_validation: bool = False) -> float:
+                           is_validation: bool = False,
+                           target_indexes: list[int] | None = None
+                           ) -> float:
         """
         Forward list of sequences through model.
 
@@ -74,20 +77,26 @@ class StatePredictionModule:
             self.model.train()
 
         # Forward all sequences
-        for seq_i, seq in enumerate(sequences):
+        for _, seq in enumerate(sequences):
 
             # Clear internal LSTM states
             h0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
             c0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
 
-            # Iterate over sequence
-            for step_i in range(len(seq) - 1):
+            # Iterate over sequence_df
+            for step_i in range(len(seq) - self.model_params.n_steps_predict):
 
                 # Get input and output data
                 input_step: torch.Tensor = seq[step_i].clone()
-                output_step: torch.Tensor = seq[step_i + 1].clone()
+                output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + self.model_params.n_steps_predict].clone()
+
+                if target_indexes is not None:
+                    output_step = output_step[:, target_indexes]
+
                 input_step = input_step.expand((1, -1)).to(self.model_params.device)
-                output_step = output_step.expand((1, -1)).to(self.model_params.device)
+
+                if self.model_params.n_steps_predict == 1:
+                    output_step = output_step.expand((1, -1)).to(self.model_params.device)
 
                 if not is_validation:
                     self.optimizer.zero_grad()
@@ -97,6 +106,9 @@ class StatePredictionModule:
                         outputs, (hn, cn) = self.model(input_step, h0, c0)
                 else:
                     outputs, (hn, cn) = self.model(input_step, h0, c0)
+
+                outputs = outputs.view(self.model_params.n_steps_predict,
+                                       round(outputs.shape[1] / self.model_params.n_steps_predict))
 
                 # Calculate losses
                 loss = self.criterion(outputs, output_step)
@@ -122,6 +134,7 @@ class StatePredictionModule:
     def _kfold(self,
                sequences: list[np.ndarray],
                kfold_n_splits: Optional[int] = 5,
+               target_indexes: Optional[list[int]] = None
                ):
         kf = KFold(n_splits=kfold_n_splits, shuffle=True)
 
@@ -137,10 +150,10 @@ class StatePredictionModule:
             val_sequences = seq2tensors(val_sequences, self.model_params.device)
 
             # Train on sequences
-            train_loss = self._forward_sequences(train_sequences, is_validation=False)
+            train_loss = self._forward_sequences(train_sequences, is_validation=False, target_indexes=target_indexes)
 
             # Track validation loss
-            val_loss = self._forward_sequences(val_sequences, is_validation=True)
+            val_loss = self._forward_sequences(val_sequences, is_validation=True, target_indexes=target_indexes)
 
             val_loss_sum += val_loss
             train_loss_sum += train_loss
@@ -152,7 +165,7 @@ class StatePredictionModule:
 
     def train(self,
               params: TrainParams,
-              sequences: list[np.ndarray],
+              sequences: list[pd.DataFrame],
               mode: Literal['train', 'eval'] = 'train'
               ):
         """
@@ -175,6 +188,12 @@ class StatePredictionModule:
         train_losses = []
         scaler = None
 
+        target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
+                              self.model_params.cols_predict] \
+            if self.model_params.cols_predict is not None else None
+
+        sequences = [s.values for s in sequences]
+
         # Run epochs
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
@@ -182,15 +201,18 @@ class StatePredictionModule:
             # We perform KFold evaluation
             if mode == 'eval':
                 train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences,
-                                                                     kfold_n_splits=params.eval_n_splits)
+                                                                     kfold_n_splits=params.eval_n_splits,
+                                                                     target_indexes=target_col_indexes
+                                                                     )
 
             # We perform regular training
             else:
-
                 train_sequences, _, scaler = normalize_split(sequences, None)
+
                 train_sequences = seq2tensors(train_sequences, self.model_params.device)
 
-                curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False)
+                curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False,
+                                                                target_indexes=target_col_indexes)
                 train_loss_mean = curr_target_loss_mean
 
             val_losses.append(curr_target_loss_mean)
@@ -211,26 +233,18 @@ class StatePredictionModule:
                     print("Early stopping")
                     break
 
+        if mode == 'train':
+            self.scaler = scaler
+
         plt.plot(train_losses, label="Train loss")
         plt.plot(val_losses, label="Validation loss")
 
         plt.legend()
         plt.show()
 
-        return scaler
+    def predict(self, sequence_df: pd.DataFrame):
+        sequence_array = sequence_df.values
 
-    def predict(self):
-
-        pass
-
-    def predict_raw(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
-        """
-        Predict next state and return it along with LSTM hidden state.
-        The hidden state contains extracted time information about sequence.
-
-        :param sequence:
-        :return: Predicted state and hidden lstm state
-        """
         self.model.eval()
 
         # Initialize hidden states
@@ -240,10 +254,35 @@ class StatePredictionModule:
         out = None
 
         with torch.no_grad():
-            for step in sequence:
+            for step in sequence_array:
                 out, (hn, cn) = self.model.forward(step, h0, c0)
 
                 h0 = hn.detach()
                 c0 = cn.detach()
 
         return out, (h0, c0)
+
+    # def _predict_raw(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    #     """
+    #     Predict next state and return it along with LSTM hidden state.
+    #     The hidden state contains extracted time information about sequence_df.
+    #
+    #     :param sequence:
+    #     :return: Predicted state and hidden lstm state
+    #     """
+    #     self.model.eval()
+    #
+    #     # Initialize hidden states
+    #     h0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+    #     c0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+    #
+    #     out = None
+    #
+    #     with torch.no_grad():
+    #         for step in sequence:
+    #             out, (hn, cn) = self.model.forward(step, h0, c0)
+    #
+    #             h0 = hn.detach()
+    #             c0 = cn.detach()
+    #
+    #     return out, (h0, c0)

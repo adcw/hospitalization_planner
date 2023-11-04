@@ -10,8 +10,8 @@ def normalize_split(train_seq: list[np.ndarray], val_seq: list[np.ndarray] | Non
     """
     Normalize train and validation data.
     Scaler is fit on training data and used both on training and validation data.
-    :param train_seq: Train sequence
-    :param val_seq: Validation sequence
+    :param train_seq: Train sequence_df
+    :param val_seq: Validation sequence_df
     :return: Normalized train, normalized validation data, scaler.
     """
     scaler = MinMaxScaler()

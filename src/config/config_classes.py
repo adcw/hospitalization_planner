@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Callable
 
 import torch
+import torch.nn.functional as F
 import yaml
 
 
@@ -14,6 +15,12 @@ class Params(ABC):
         ...
 
 
+activation_dict = {
+    "relu": F.relu,
+    "sigmoid": F.sigmoid,
+}
+
+
 @dataclass
 class ModelParams(Params):
     """
@@ -23,7 +30,10 @@ class ModelParams(Params):
     hidden_size: int = 64
     n_lstm_layers: int = 2
     n_steps_predict: int = 1
-    cols_predict: Optional[list[str]] = None
+    cols_predict: Optional[list[str]] = None,
+    fccn_arch: list[int] = [32] * 5,
+    fccn_dropout_p: float = 0.15
+    fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
 
     @classmethod
     def from_yaml(cls, yaml_path: str):
@@ -35,9 +45,16 @@ class ModelParams(Params):
         n_lstm_layers = data['model_params']['net_params']['n_lstm_layers']
         n_steps_predict = data['model_params']['n_steps_predict']
         cols_predict = data['model_params']['cols_predict']
+        fccn_arch = data['model_params']['net_params']['fccn_arch']
+        fccn_dropout_p = data['model_params']['net_params']['fccn_dropout_p']
+
+        fccn_activation_name = data['model_params']['net_params']['fccn_activation']
+
+        fccn_activation = activation_dict.get(fccn_activation_name, F.relu)
 
         return cls(device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers, n_steps_predict=n_steps_predict,
-                   cols_predict=cols_predict)
+                   cols_predict=cols_predict, fccn_arch=fccn_arch, fccn_dropout_p=fccn_dropout_p,
+                   fccn_activation=fccn_activation)
 
 
 @dataclass

@@ -27,7 +27,7 @@ class Preprocessor:
     def fit_transform(
             self,
             input_df: pd.DataFrame,
-    ) -> list[np.ndarray]:
+    ) -> list[pd.DataFrame]:
         exclude_cols = self.group_cols.copy()
         exclude_cols.append(self.group_sort_col)
 
@@ -46,7 +46,7 @@ class Preprocessor:
         sequences = []
         for _, g in groups:
             g.sort_values(by=self.group_sort_col, inplace=True)
-            sequences.append(g.drop(columns=exclude_cols).values.astype(float))
+            sequences.append(g.drop(columns=exclude_cols).astype(float))
 
         return sequences
 
