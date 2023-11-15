@@ -63,9 +63,7 @@ class StatePredictionModule:
         :param is_validation: whether we are validating model instead of training
         :return:
         """
-        train_progress = tqdm(sequences,
-                              # desc=f"Training on {split_i + 1}/{kfold_n_splits} split",
-                              total=sum([len(s) - 1 for s in sequences]))
+        train_progress = tqdm(sequences, total=sum([len(s) - self.model_params.n_steps_predict for s in sequences]))
 
         # Track overall loss
         loss_sum = 0
@@ -163,27 +161,19 @@ class StatePredictionModule:
 
         return train_loss_mean, val_loss_mean
 
-    def train(self,
-              params: TrainParams,
-              sequences: list[pd.DataFrame],
-              mode: Literal['train', 'eval'] = 'train'
-              ):
+    def train(self, params: TrainParams, sequences: list[pd.DataFrame]):
         """
         Train the model
 
-        :param params:
-        :param mode:
-        :param sequences: A list of sequences to be learnt
-        :return: Return scaler if there is no kfold_n_splits argument, otherwise return None.
+        :param params: Training parameters
+        :param sequences: A list of sequences to be learned
+        :return: Scaler if training is performed, otherwise None
         """
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
-        # Variables to keep track of val loss
         patience_counter = 0 if params.es_patience is not None else None
-
         min_target_loss_mean = np.inf
-
         val_losses = []
         train_losses = []
         scaler = None
@@ -194,33 +184,20 @@ class StatePredictionModule:
 
         sequences = [s.values for s in sequences]
 
-        # Run epochs
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
+            train_sequences, _, scaler = normalize_split(sequences, None)
+            train_sequences = seq2tensors(train_sequences, self.model_params.device)
 
-            # We perform KFold evaluation
-            if mode == 'eval':
-                train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences,
-                                                                     kfold_n_splits=params.eval_n_splits,
-                                                                     target_indexes=target_col_indexes
-                                                                     )
-
-            # We perform regular training
-            else:
-                train_sequences, _, scaler = normalize_split(sequences, None)
-
-                train_sequences = seq2tensors(train_sequences, self.model_params.device)
-
-                curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False,
-                                                                target_indexes=target_col_indexes)
-                train_loss_mean = curr_target_loss_mean
+            curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False,
+                                                            target_indexes=target_col_indexes)
+            train_loss_mean = curr_target_loss_mean
 
             val_losses.append(curr_target_loss_mean)
             train_losses.append(train_loss_mean)
 
-            print(
-                f"\nMean train loss = {train_loss_mean}, "
-                f"mean val loss = {curr_target_loss_mean if mode == 'eval' else '-'}")
+            print(f"\nMean train loss = {train_loss_mean}")
+            print(f"mean val loss = {curr_target_loss_mean}")
 
             if params.es_patience is not None:
                 if curr_target_loss_mean < min_target_loss_mean:
@@ -233,12 +210,53 @@ class StatePredictionModule:
                     print("Early stopping")
                     break
 
-        if mode == 'train':
-            self.scaler = scaler
+        self.scaler = scaler
 
         plt.plot(train_losses, label="Train loss")
         plt.plot(val_losses, label="Validation loss")
+        plt.legend()
+        plt.show()
 
+    def eval(self, params: TrainParams, sequences: list[pd.DataFrame]):
+        """
+        Evaluate the model
+
+        :param params: Evaluation parameters
+        :param sequences: A list of sequences to be evaluated
+        """
+        self.criterion = nn.MSELoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+
+        patience_counter = 0 if params.es_patience is not None else None
+        min_target_loss_mean = np.inf
+        val_losses = []
+        target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
+                              self.model_params.cols_predict] \
+            if self.model_params.cols_predict is not None else None
+
+        sequences = [s.values for s in sequences]
+
+        for epoch in range(params.epochs):
+            print(f"Epoch {epoch + 1}/{params.epochs}\n")
+            train_loss_mean, curr_target_loss_mean = self._kfold(sequences=sequences,
+                                                                 kfold_n_splits=params.eval_n_splits,
+                                                                 target_indexes=target_col_indexes)
+
+            val_losses.append(curr_target_loss_mean)
+            print(f"\nMean train loss = {train_loss_mean}, mean val loss = {curr_target_loss_mean}")
+
+            if params.es_patience is not None:
+                if curr_target_loss_mean < min_target_loss_mean:
+                    min_target_loss_mean = curr_target_loss_mean
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+
+                if patience_counter >= params.es_patience:
+                    print("Early stopping")
+                    break
+
+        plt.plot(val_losses, label="Validation loss")
         plt.legend()
         plt.show()
 

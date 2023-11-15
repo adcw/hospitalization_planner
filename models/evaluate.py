@@ -10,7 +10,7 @@ def main():
 
     pred_model = StatePredictionModule(params=ModelParams.from_yaml(CONFIG_FILE_PATH), n_attr_in=sequences[0].shape[1])
 
-    pred_model.train(sequences=sequences[:20], mode='eval', params=TrainParams.from_yaml(CONFIG_FILE_PATH))
+    pred_model.eval(sequences=sequences[:10], params=TrainParams.from_yaml(CONFIG_FILE_PATH))
 
     pass
 
