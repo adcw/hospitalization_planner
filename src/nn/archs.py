@@ -47,8 +47,9 @@ class StepTimeLSTM(nn.Module):
         :param c0: Previous c0 hidden state
         :return: Predicted row and hidden states (hn, cn)
         """
-
+        self.lstm.flatten_parameters()
         out, (hn, cn) = self.lstm(x, (h0, c0))
+
         out = self.fccn(out)
         out = self.activation(out)
         return out, (hn, cn)
