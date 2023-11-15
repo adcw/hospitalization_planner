@@ -15,6 +15,7 @@ class Preprocessor:
                  onehot_cols: Optional[list[str]] = None,
                  impute_dict: dict[[str], list[str]] | None = None,
                  rank_dict: dict[[str], list[str]] | None = None,
+                 drop_na: bool = False
                  ):
         self.transform_data: Optional[TransformData] = None
 
@@ -23,6 +24,7 @@ class Preprocessor:
         self.onehot_cols = onehot_cols
         self.impute_dict = impute_dict
         self.rank_dict = rank_dict
+        self.drop_na = drop_na
 
     def fit_transform(
             self,
@@ -37,7 +39,9 @@ class Preprocessor:
                                       impute_dict=self.impute_dict, rank_dict=self.rank_dict)
 
         df = pd.concat([df, transformed], axis=1)
-        # df.dropna(inplace=True)
+
+        if self.drop_na:
+            df.dropna(inplace=True, axis='rows')
 
         self.transform_data = data
 

@@ -1,19 +1,11 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 
 import torch
 import torch.nn.functional as F
 import yaml
 
-
-@dataclass
-class Params(ABC):
-    @classmethod
-    @abstractmethod
-    def from_yaml(cls, yaml_path):
-        ...
-
+...
 
 activation_dict = {
     "relu": F.relu,
@@ -22,7 +14,7 @@ activation_dict = {
 
 
 @dataclass
-class ModelParams(Params):
+class ModelParams:
     """
     Class that contains all the data for neural network architecture
     """
@@ -35,30 +27,9 @@ class ModelParams(Params):
     fccn_dropout_p: float = 0.15
     fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
 
-    @classmethod
-    def from_yaml(cls, yaml_path: str):
-        with open(yaml_path, 'r') as yaml_file:
-            data = yaml.safe_load(yaml_file)
-
-        device = torch.device(data['model_params']['net_params']['device'])
-        hidden_size = data['model_params']['net_params']['hidden_size']
-        n_lstm_layers = data['model_params']['net_params']['n_lstm_layers']
-        n_steps_predict = data['model_params']['n_steps_predict']
-        cols_predict = data['model_params']['cols_predict']
-        fccn_arch = data['model_params']['net_params']['fccn_arch']
-        fccn_dropout_p = data['model_params']['net_params']['fccn_dropout_p']
-
-        fccn_activation_name = data['model_params']['net_params']['fccn_activation']
-
-        fccn_activation = activation_dict.get(fccn_activation_name, F.relu)
-
-        return cls(device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers, n_steps_predict=n_steps_predict,
-                   cols_predict=cols_predict, fccn_arch=fccn_arch, fccn_dropout_p=fccn_dropout_p,
-                   fccn_activation=fccn_activation)
-
 
 @dataclass
-class TrainParams(Params):
+class TrainParams:
     """
     Parameters used for training
     :var es_patience: Early stopping patience
@@ -69,13 +40,33 @@ class TrainParams(Params):
     epochs: int = 30
     eval_n_splits: int = 5
 
-    @classmethod
-    def from_yaml(cls, yaml_path: str):
-        with open(yaml_path, 'r') as yaml_file:
-            data = yaml.safe_load(yaml_file)
 
-        es_patience = data['train']['es_patience']
-        epochs = data['train']['epochs']
-        eval_n_splits = data['train']['eval_n_splits']
+def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams]:
+    with open(yaml_path, 'r') as yaml_file:
+        data = yaml.safe_load(yaml_file)
 
-        return cls(es_patience, epochs, eval_n_splits)
+    # Extract model parameters
+    model_params_data = data['model_params']['net_params']
+    device = torch.device(model_params_data['device'])
+    hidden_size = model_params_data['hidden_size']
+    n_lstm_layers = model_params_data['n_lstm_layers']
+    n_steps_predict = data['model_params']['n_steps_predict']
+    cols_predict = data['model_params']['cols_predict']
+    fccn_arch = model_params_data['fccn_arch']
+    fccn_dropout_p = model_params_data['fccn_dropout_p']
+    fccn_activation_name = model_params_data['fccn_activation']
+    fccn_activation = activation_dict.get(fccn_activation_name, F.relu)
+
+    model_params = ModelParams(device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers,
+                               n_steps_predict=n_steps_predict, cols_predict=cols_predict, fccn_arch=fccn_arch,
+                               fccn_dropout_p=fccn_dropout_p, fccn_activation=fccn_activation)
+
+    # Extract training parameters
+    train_params_data = data['train']
+    es_patience = train_params_data['es_patience']
+    epochs = train_params_data['epochs']
+    eval_n_splits = train_params_data['eval_n_splits']
+
+    train_params = TrainParams(es_patience=es_patience, epochs=epochs, eval_n_splits=eval_n_splits)
+
+    return model_params, train_params
