@@ -26,6 +26,8 @@ class Preprocessor:
         self.rank_dict = rank_dict
         self.drop_na = drop_na
 
+        self.original_column_order = None
+
     def fit_transform(
             self,
             input_df: pd.DataFrame,
@@ -34,8 +36,11 @@ class Preprocessor:
         exclude_cols.append(self.group_sort_col)
 
         df = input_df[exclude_cols]
+        input_df = input_df.drop(columns=exclude_cols)
 
-        transformed, data = transform(input_df=input_df.drop(columns=exclude_cols).copy(), onehot_cols=self.onehot_cols,
+        self.original_column_order = list(input_df.columns)
+
+        transformed, data = transform(input_df=input_df, onehot_cols=self.onehot_cols,
                                       impute_dict=self.impute_dict, rank_dict=self.rank_dict)
 
         df = pd.concat([df, transformed], axis=1)
@@ -54,14 +59,23 @@ class Preprocessor:
 
         return sequences
 
-    def inverse_transform(self, tensors: list[torch.Tensor]) -> list[pd.DataFrame]:
-        original_cols = self.transform_data.onehot_encoder.original_column_order.copy()
-        original_cols.extend(self.transform_data.onehot_encoder.encoded_columns)
+    def inverse_transform(self,
+                          tensors: list[torch.Tensor],
+                          col_indexes: Optional[list[int]] = None
+                          ) -> list[pd.DataFrame]:
 
-        drop_cols = self.transform_data.onehot_encoder.columns
-        drop_cols.extend(self.group_cols)
+        real_cols = self.original_column_order
+        if col_indexes is not None:
+            real_cols = [real_cols[i] for i in col_indexes]
 
-        real_cols = [col for col in original_cols if (col not in drop_cols)]
+        if self.transform_data.onehot_encoder is not None:
+            original_cols = self.transform_data.onehot_encoder.original_column_order.copy()
+            original_cols.extend(self.transform_data.onehot_encoder.encoded_columns)
+
+            drop_cols = self.transform_data.onehot_encoder.columns
+            drop_cols.extend(self.group_cols)
+
+            real_cols = [col for col in original_cols if (col not in drop_cols)]
 
         dfs = []
         for t in tensors:

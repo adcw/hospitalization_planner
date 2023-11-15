@@ -44,12 +44,12 @@ class StatePredictionModule:
                                   fccn_dropout_p=self.model_params.fccn_dropout_p)
 
         self.model = self.model.to(self.model_params.device)
-        self.target_col_indexes = None
 
         self.criterion = None
         self.optimizer = None
 
         self.scaler = None
+        self.target_col_indexes = None
 
     def _forward_sequences(self,
                            sequences: list[torch.Tensor],
@@ -176,21 +176,21 @@ class StatePredictionModule:
         min_target_loss_mean = np.inf
         val_losses = []
         train_losses = []
-        scaler = None
 
-        target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
-                              self.model_params.cols_predict] \
+        self.target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
+                                   self.model_params.cols_predict] \
             if self.model_params.cols_predict is not None else None
 
         sequences = [s.values for s in sequences]
 
+        train_sequences, _, scaler = normalize_split(sequences, None)
+        train_sequences = seq2tensors(train_sequences, self.model_params.device)
+
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
-            train_sequences, _, scaler = normalize_split(sequences, None)
-            train_sequences = seq2tensors(train_sequences, self.model_params.device)
 
             curr_target_loss_mean = self._forward_sequences(train_sequences, is_validation=False,
-                                                            target_indexes=target_col_indexes)
+                                                            target_indexes=self.target_col_indexes)
             train_loss_mean = curr_target_loss_mean
 
             val_losses.append(curr_target_loss_mean)
@@ -263,6 +263,8 @@ class StatePredictionModule:
     def predict(self, sequence_df: pd.DataFrame):
         sequence_array = sequence_df.values
 
+        sequence_array = self.scaler.transform(sequence_array)
+
         self.model.eval()
 
         # Initialize hidden states
@@ -273,12 +275,19 @@ class StatePredictionModule:
 
         with torch.no_grad():
             for step in sequence_array:
-                out, (hn, cn) = self.model.forward(step, h0, c0)
+                step_tensor = torch.Tensor(step).expand((1, -1)).to(self.model_params.device)
+
+                out, (hn, cn) = self.model.forward(step_tensor, h0, c0)
 
                 h0 = hn.detach()
                 c0 = cn.detach()
 
-        return out, (h0, c0)
+        out = out.to('cpu')
+        scale_ = self.scaler.scale_[self.target_col_indexes]
+        min_ = self.scaler.min_[self.target_col_indexes]
+        out = out * scale_ + min_
+
+        return out
 
     # def _predict_raw(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
     #     """
