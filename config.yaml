@@ -1,3 +1,5 @@
+# Contain all data about model structure and training process.
+# basically how to create the next instance of model.
 model_params:
   n_steps_predict: 5 #How many future steps we predict?
   cols_predict: [ "respiration" ] #Null value means we are predicting all fields
@@ -11,5 +13,6 @@ model_params:
     #Add learning rate and other params for network
 train:
   es_patience: 5
-  epochs: 30
+  epochs: 20
   eval_n_splits: 5 #Number of KFolds split
+  sequence_limit: 12

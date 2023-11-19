@@ -8,7 +8,7 @@ from sklearn.model_selection import KFold
 from torch import nn, optim
 from tqdm import tqdm
 
-from src.config.config_classes import ModelParams, TrainParams
+from src.config.parsing import ModelParams, TrainParams
 from src.nn.archs import StepTimeLSTM
 from src.preprocessing import normalize_split
 
@@ -212,6 +212,7 @@ class StatePredictionModule:
 
         self.scaler = scaler
 
+        # TODO: Go away
         plt.plot(train_losses, label="Train loss")
         plt.plot(val_losses, label="Validation loss")
         plt.legend()
@@ -288,28 +289,3 @@ class StatePredictionModule:
         out = out * scale_ + min_
 
         return out
-
-    # def _predict_raw(self, sequence: torch.Tensor) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
-    #     """
-    #     Predict next state and return it along with LSTM hidden state.
-    #     The hidden state contains extracted time information about sequence_df.
-    #
-    #     :param sequence:
-    #     :return: Predicted state and hidden lstm state
-    #     """
-    #     self.model.eval()
-    #
-    #     # Initialize hidden states
-    #     h0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
-    #     c0 = torch.randn((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
-    #
-    #     out = None
-    #
-    #     with torch.no_grad():
-    #         for step in sequence:
-    #             out, (hn, cn) = self.model.forward(step, h0, c0)
-    #
-    #             h0 = hn.detach()
-    #             c0 = cn.detach()
-    #
-    #     return out, (h0, c0)

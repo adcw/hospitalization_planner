@@ -27,6 +27,16 @@ class ModelParams:
     fccn_dropout_p: float = 0.15
     fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
 
+    def __repr__(self):
+        return f"{self.device=}\n" \
+               f"{self.hidden_size=}\n" \
+               f"{self.n_lstm_layers=}\n" \
+               f"{self.n_steps_predict=}\n" \
+               f"{self.cols_predict=}\n" \
+               f"{self.fccn_arch=}\n" \
+               f"{self.fccn_dropout_p=}\n" \
+               f"{self.fccn_activation=}\n"
+
 
 @dataclass
 class TrainParams:
@@ -39,6 +49,13 @@ class TrainParams:
     es_patience: int = 2
     epochs: int = 30
     eval_n_splits: int = 5
+    sequence_limit: Optional[int] = None
+
+    def __repr__(self):
+        return f"{self.es_patience=}\n" \
+               f"{self.epochs=}\n" \
+               f"{self.eval_n_splits=}\n" \
+               f"{self.sequence_limit=}\n"
 
 
 def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams]:
@@ -66,7 +83,9 @@ def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams]:
     es_patience = train_params_data['es_patience']
     epochs = train_params_data['epochs']
     eval_n_splits = train_params_data['eval_n_splits']
+    sequence_limit = train_params_data['sequence_limit']
 
-    train_params = TrainParams(es_patience=es_patience, epochs=epochs, eval_n_splits=eval_n_splits)
+    train_params = TrainParams(es_patience=es_patience, epochs=epochs, eval_n_splits=eval_n_splits,
+                               sequence_limit=sequence_limit)
 
     return model_params, train_params
