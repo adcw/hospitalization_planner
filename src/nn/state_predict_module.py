@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 from tqdm import tqdm
 
@@ -48,7 +49,7 @@ class StatePredictionModule:
         self.criterion = None
         self.optimizer = None
 
-        self.scaler = None
+        self.scaler: Optional[MinMaxScaler] = None
         self.target_col_indexes = None
 
     def _forward_sequences(self,
@@ -284,8 +285,9 @@ class StatePredictionModule:
                 c0 = cn.detach()
 
         out = out.to('cpu')
+
         scale_ = self.scaler.scale_[self.target_col_indexes]
-        min_ = self.scaler.min_[self.target_col_indexes]
+        min_ = self.scaler.data_min_[self.target_col_indexes]
         out = out * scale_ + min_
 
         return out

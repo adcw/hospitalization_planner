@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
+import pandas as pd
+from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams
 from src.nn import StatePredictionModule
-
-import pandas as pd
-
-from src.preprocessing import Preprocessor
 
 
 @dataclass
@@ -37,14 +35,14 @@ def test_model_helper(
         limit: int = 15,
         offset: int = 0,
 ):
-    for seq in sequences[offset:offset + limit]:
-        # Take one for now
+    for seq in tqdm(sequences[offset:offset + limit], desc="Evaluating test cases"):
         split_point = round(0.5 * len(seq))
-        input_sequence = seq[:split_point]
+        input_sequence: pd.DataFrame = seq[:split_point]
 
         pred = model_payload.model.predict(input_sequence)
 
         pred = pred.reshape((pred.shape[1], -1))
+
         real = seq[split_point:split_point + model_payload.model_params.n_steps_predict].iloc[
                :, model_payload.model.target_col_indexes].values
 

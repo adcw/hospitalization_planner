@@ -1,8 +1,8 @@
 # Contain all data about model structure and training process.
 # basically how to create the next instance of model.
 model_params:
-  n_steps_predict: 5 #How many future steps we predict?
-  cols_predict: [ "respiration" ] #Null value means we are predicting all fields
+  n_steps_predict: 3 #How many future steps we predict?
+  cols_predict: [ "creatinine" ] #Null value means we are predicting all fields
   net_params:
     device: 'cuda'
     hidden_size: 64
@@ -12,7 +12,7 @@ model_params:
     fccn_activation: 'relu'
     #Add learning rate and other params for network
 train:
-  es_patience: 5
-  epochs: 20
+  es_patience: 4
+  epochs: 10
   eval_n_splits: 5 #Number of KFolds split
-  sequence_limit: 12
+  sequence_limit: Null

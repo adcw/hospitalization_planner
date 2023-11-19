@@ -1,4 +1,5 @@
 import os
+import time
 from pickle import load, dump
 
 import numpy as np
@@ -64,18 +65,21 @@ class ModelManager:
         sequences, self.preprocessor = _get_sequences()
         split_point = round(test_perc * len(sequences))
 
-        self.sequences_train = sequences[:split_point]
+        self.sequences_train = sequences[split_point:]
         self.sequences_test = sequences[:split_point]
 
     def start(self):
-        print("Read model params:")
-        print(self.model_params)
-        print("Read train params:")
-        print(self.train_params)
 
         mode = prompt_mode()
 
         if mode == "train":
+            print("Read model params:")
+            print(self.model_params)
+            print("Read train params:")
+            print(self.train_params)
+
+            time.sleep(1)
+
             trained_model = train_model_helper(model_params=self.model_params, train_params=self.train_params,
                                                sequences=self.sequences_train)
             model_name = prompt_model_name()
@@ -94,6 +98,13 @@ class ModelManager:
 
             with open(f"{self.models_dir}/{model_filename}", "rb") as file:
                 model_payload: ModelPayload = load(file)
+
+                print("Read model params:")
+                print(model_payload.model_params)
+                print("Read train params:")
+                print(model_payload.train_params)
+
+                time.sleep(1)
 
                 test_model_helper(model_payload, sequences=self.sequences_test)
 
