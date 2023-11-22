@@ -286,8 +286,13 @@ class StatePredictionModule:
 
         out = out.to('cpu')
 
-        scale_ = self.scaler.scale_[self.target_col_indexes]
-        min_ = self.scaler.data_min_[self.target_col_indexes]
-        out = out * scale_ + min_
+        # Manual inverse_transform
+        min_, max_ = self.scaler.feature_range
+
+        out = (out - min_) / (max_ - min_)
+
+        data_range_ = self.scaler.data_range_[self.target_col_indexes]
+        data_min_ = self.scaler.data_min_[self.target_col_indexes]
+        out = out * data_range_ + data_min_
 
         return out
