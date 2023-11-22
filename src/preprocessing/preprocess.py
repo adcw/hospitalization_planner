@@ -55,7 +55,7 @@ class Preprocessor:
         sequences = []
         for _, g in groups:
             g.sort_values(by=self.group_sort_col, inplace=True)
-            sequences.append(g.drop(columns=exclude_cols).astype(float))
+            sequences.append(g.drop(columns=exclude_cols).astype(float).reset_index(drop=True))
 
         return sequences
 
