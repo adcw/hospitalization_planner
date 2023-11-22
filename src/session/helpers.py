@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +7,7 @@ from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams
 from src.nn import StatePredictionModule
+from src.plotting import plot_trajectories, plot_pred_comparison
 
 
 @dataclass
@@ -31,32 +31,6 @@ def train_model_helper(
     return model
 
 
-def plot_trajectories(ts: List[np.iterable], title: str = "Trajectories"):
-    num_subplots = min(len(ts), 6 * 6)
-    num_cols = int(np.ceil(np.sqrt(num_subplots)))
-    num_rows = int(np.ceil(num_subplots / num_cols))
-
-    ts = ts.copy()
-
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(3 * num_rows, 3 * num_cols))
-
-    if len(ts) == 1:
-        axs.plot(ts[0])
-    else:
-        for i in range(num_rows):
-            for j in range(num_cols):
-                if len(ts) > 0:
-                    data = ts.pop(0)
-                    axs[i, j].plot(data, label=f'Series {i * num_cols + j + 1}')
-                    axs[i, j].legend()
-                else:
-                    axs[i, j].axis('off')
-
-    plt.tight_layout()
-    plt.suptitle(title)
-    plt.show()
-
-
 def plot_critical_places(seq: np.ndarray):
     diff = np.diff(seq.ravel())
     points = np.where(diff != 0)
@@ -77,36 +51,47 @@ def test_model_helper(
         sequences: list[pd.DataFrame],
         limit: int = 15,
         offset: int = 0,
+
+        max_per_sequence: int = 3
 ):
-    pass
+    cnt = 0
+    end = False
 
-    plot_critical_places(sequences[2][model_payload.model_params.cols_predict].values)
+    plot_data = []
 
-    for seq in tqdm(sequences[offset:offset + limit], desc="Evaluating test cases"):
-        split_point = round(0.5 * len(seq))
-        input_sequence: pd.DataFrame = seq[:split_point]
+    for seq in tqdm(sequences[offset:], desc="Evaluating test cases"):
+        target_col = seq[model_payload.model_params.cols_predict]
+        diff = np.diff(target_col, axis=0)
+        points, _ = np.where(diff != 0)
 
-        pred = model_payload.model.predict(input_sequence)
+        # If there is more points than max allowed, get random points of max count allowed.
+        if len(points) > 3:
+            points = np.random.choice(points, size=max_per_sequence, replace=False)
 
-        pred = pred.reshape((pred.shape[1], -1))
+        for point in points:
+            cnt += 1
 
-        real = seq[split_point:split_point + model_payload.model_params.n_steps_predict].iloc[
-               :, model_payload.model.target_col_indexes].values
+            x_real = seq[:point]
 
-        fig, axs = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+            if x_real.shape[0] == 0:
+                continue
 
-        axs[0].plot(real, label="Real trajectory")
-        axs[0].plot(pred, label="Predicted trajectory")
-        axs[0].set_ylim(-0.1, 1.1)
-        axs[0].legend()
+            y_real = seq[point:point + model_payload.model_params.n_steps_predict] \
+                         .iloc[:, model_payload.model.target_col_indexes].values
 
-        axs[1].plot(real, label="Real trajectory")
-        axs[1].plot(pred, label="Predicted trajectory")
-        axs[1].legend()
+            y_pred = model_payload.model.predict(x_real)
+            y_pred = y_pred.reshape((y_pred.shape[1], -1))
 
-        plt.show()
+            plot_data.append((y_real, y_pred))
 
-    pass
+            if cnt >= limit:
+                end = True
+                break
+
+        if end:
+            break
+
+    plot_pred_comparison(plot_data)
 
 
 def load_data_helper():
