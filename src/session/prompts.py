@@ -10,7 +10,7 @@ def prompt_mode() -> Literal["train", "test", "validate"]:
     questions = [
         inquirer.List(prompt_name,
                       message="Choose Mode",
-                      choices=['train', 'test', 'validate'],
+                      choices=['train', 'test', 'eval'],
                       ),
     ]
 
