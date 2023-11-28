@@ -2,19 +2,21 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+import warnings
+
+warnings.filterwarnings("ignore",
+                        message="'Lazy modules are a new feature under heavy development '\
+                      'so changes to the API or functionality can happen at any moment.'")
+
 
 class StepTimeLSTM(nn.Module):
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
                  output_size: int,
-
                  n_lstm_layers: int = 2,
-
                  device: torch.device = 'cpu',
-
-                 activation=F.sigmoid,
-
+                 activation=F.relu,
                  fccn_arch: list[int] | None = None,
                  fccn_dropout_p: float = 0.15,
                  fccn_activation=F.relu
@@ -31,14 +33,22 @@ class StepTimeLSTM(nn.Module):
 
         self.hidden_size = hidden_size
         self.output_size = output_size
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device, num_layers=self.lstm_num_layers)
 
-        self.fccn = FCCN(input_size=self.hidden_size,
-                         hidden_sizes=self.fccn_arch,
-                         output_size=self.output_size,
-                         dropout_rate=self.fccn_dropout_p,
-                         activation=self.fccn_activation,
-                         device=device)
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device,
+                            num_layers=self.lstm_num_layers, dropout=0.1)
+
+        self.output_interpreter = LazyFCCN(hidden_sizes=self.fccn_arch,
+                                           output_size=self.output_size,
+                                           dropout_rate=self.fccn_dropout_p,
+                                           activation=self.fccn_activation,
+                                           device=device)
+
+        memory_size = self.hidden_size * self.lstm_num_layers * 2
+        self.memory_arranger = LazyFCCN(hidden_sizes=[memory_size * 8, memory_size * 4, memory_size * 2],
+                                        output_size=memory_size,
+                                        dropout_rate=0.05,
+                                        activation=torch.tanh,
+                                        device=device)
 
     def forward(self, x, h0, c0):
         """
@@ -48,31 +58,39 @@ class StepTimeLSTM(nn.Module):
         :return: Predicted row and hidden states (hn, cn)
         """
         self.lstm.flatten_parameters()
-        out, (hn, cn) = self.lstm(x, (h0, c0))
+        lstm_output, (hn, cn) = self.lstm(x, (h0, c0))
 
-        out = self.fccn(out)
-        out = self.activation(out)
+        lstm_output = torch.cat([lstm_output, hn, cn])
+        lstm_output = lstm_output.view(1, -1)
+        out = self.output_interpreter(lstm_output)
+
+        lstm_memory = torch.cat([h0, c0, hn, cn])
+        lstm_memory = lstm_memory.view(1, -1)
+        lstm_memory_out = self.memory_arranger(lstm_memory)
+        lstm_memory_out = lstm_memory_out.view(2 * self.lstm_num_layers, self.hidden_size)
+
+        hn, cn = lstm_memory_out.split(self.lstm_num_layers)
+
         return out, (hn, cn)
 
 
-class FCCN(nn.Module):
+class LazyFCCN(nn.Module):
     def __init__(self,
-                 input_size: int,
                  hidden_sizes: list[int],
                  output_size: int,
                  dropout_rate: float = 0.1,
 
-                 activation=F.relu,
+                 activation=F.sigmoid,
                  device: torch.device = 'cpu'
                  ):
-        super(FCCN, self).__init__()
+        super(LazyFCCN, self).__init__()
 
         self.dropout_rate = dropout_rate
         self.activation = activation
         self.device = device
 
         # Input layer
-        self.input_layer = nn.Linear(input_size, hidden_sizes[0], device=self.device)
+        self.input_layer = nn.LazyLinear(hidden_sizes[0], device=self.device)
 
         # Hidden layers with dropout
         # We are using Lazy Modules, that way the network calculates layer input shapes on its own,
