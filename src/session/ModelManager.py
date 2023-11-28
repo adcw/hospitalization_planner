@@ -8,7 +8,7 @@ import pandas as pd
 import data.raw.colnames_original as c
 
 from src.preprocessing import Preprocessor
-from src.session.helpers import train_model_helper, test_model_helper, ModelPayload
+from src.session.helpers import train_model_helper, test_model_helper, ModelPayload, eval_model_helper
 from src.session.prompts import prompt_mode, prompt_model_file, prompt_model_name
 from src.config.parsing import parse_config
 
@@ -56,11 +56,12 @@ class ModelManager:
         :param models_dir: Path to save and load models
         """
         self.models_dir = models_dir
+        self.config_path = config_path
 
         if not os.path.exists(self.models_dir):
             os.mkdir(self.models_dir)
 
-        self.model_params, self.train_params = parse_config(config_path)
+        self.model_params, self.train_params, self.eval_params = parse_config(config_path)
 
         sequences, self.preprocessor = _get_sequences()
         split_point = round(test_perc * len(sequences))
@@ -69,7 +70,6 @@ class ModelManager:
         self.sequences_test = sequences[:split_point]
 
     def start(self):
-
         mode = prompt_mode()
 
         if mode == "train":
@@ -94,7 +94,7 @@ class ModelManager:
             model_filename = prompt_model_file(self.models_dir)
 
             if model_filename is None:
-                raise UserWarning("Where are no models inside direcotry.")
+                raise UserWarning("Where are no models inside directory.")
 
             with open(f"{self.models_dir}/{model_filename}", "rb") as file:
                 model_payload: ModelPayload = load(file)
@@ -109,6 +109,16 @@ class ModelManager:
                 test_model_helper(model_payload, sequences=self.sequences_test)
 
         elif mode == "eval":
+            model_params, train_params, eval_params = parse_config(self.config_path)
+            model_payload = ModelPayload(model_params=model_params, train_params=train_params, eval_params=eval_params,
+                                         model=None)
+
+            print("Read eval params:")
+            print(model_payload.eval_params)
+
+            time.sleep(1)
+
+            eval_model_helper(model_payload, self.sequences_train + self.sequences_test)
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")

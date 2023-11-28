@@ -44,21 +44,37 @@ class TrainParams:
     Parameters used for training
     :var es_patience: Early stopping patience
     :var epochs: Max number of epochs
-    :var eval_n_splits: Number of kfold splits used in validation
     """
     es_patience: int = 2
     epochs: int = 30
-    eval_n_splits: int = 5
     sequence_limit: Optional[int] = None
 
     def __repr__(self):
         return f"{self.es_patience=}\n" \
                f"{self.epochs=}\n" \
-               f"{self.eval_n_splits=}\n" \
                f"{self.sequence_limit=}\n"
 
 
-def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams]:
+@dataclass
+class EvalParams:
+    """
+    Parameters used for training
+    :var es_patience: Early stopping patience
+    :var epochs: Max number of epochs
+    """
+    es_patience: int = 2
+    epochs: int = 30
+    n_splits: int = 5
+    sequence_limit: Optional[int] = None
+
+    def __repr__(self):
+        return f"{self.es_patience=}\n" \
+               f"{self.epochs=}\n" \
+               f"{self.n_splits=}\n" \
+               f"{self.sequence_limit=}\n"
+
+
+def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams, EvalParams]:
     with open(yaml_path, 'r') as yaml_file:
         data = yaml.safe_load(yaml_file)
 
@@ -82,10 +98,18 @@ def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams]:
     train_params_data = data['train']
     es_patience = train_params_data['es_patience']
     epochs = train_params_data['epochs']
-    eval_n_splits = train_params_data['eval_n_splits']
     sequence_limit = train_params_data['sequence_limit']
 
-    train_params = TrainParams(es_patience=es_patience, epochs=epochs, eval_n_splits=eval_n_splits,
+    train_params = TrainParams(es_patience=es_patience, epochs=epochs,
                                sequence_limit=sequence_limit)
 
-    return model_params, train_params
+    # Extract eval parameters
+    eval_params_data = data['eval']
+    es_patience = eval_params_data['es_patience']
+    epochs = eval_params_data['epochs']
+    sequence_limit = eval_params_data['sequence_limit']
+    n_splits = eval_params_data['n_splits']
+
+    eval_params = EvalParams(es_patience=es_patience, epochs=epochs, sequence_limit=sequence_limit, n_splits=n_splits)
+
+    return model_params, train_params, eval_params
