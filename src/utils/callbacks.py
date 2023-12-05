@@ -1,8 +1,10 @@
+from typing import Optional
+
 import torch
 
 
 class EarlyStopping:
-    def __init__(self, model, patience=5, delta=0, path=None):
+    def __init__(self, model, patience: Optional[int] = 5, delta=0, path=None):
         self.patience = patience
         self.delta = delta
         self.path = path
