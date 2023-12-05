@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,16 +10,37 @@ from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams
 from src.nn.archs import StepTimeLSTM
-from src.preprocessing import normalize_split
+from src.preprocessing import split_and_norm_sequences
+from src.utils.callbacks import EarlyStopping
 
 
-def seq2tensors(sequences: list[np.ndarray], device: torch.device):
+# TODO: Move to utils
+def seq2tensors(sequences: list[np.ndarray], device: torch.device) -> List[torch.Tensor]:
     tensors = []
     for seq in sequences:
         tensor = torch.Tensor(seq)
         tensor = tensor.to(device)
         tensors.append(tensor)
     return tensors
+
+
+def dfs2tensors(df: List[pd.DataFrame],
+                limit: Optional[int] = None,
+                val_perc: Optional[float] = 0.2,
+                device: torch.device = "cuda"
+                ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]]]:
+    if limit:
+        # TODO: Choose random sequences instead of trimming
+        df = df[:limit].copy()
+
+    sequences = [s.values for s in df]
+
+    train_sequences, val_sequences, scaler = split_and_norm_sequences(sequences, val_perc)
+    train_sequences = seq2tensors(train_sequences, device)
+
+    val_sequences = seq2tensors(val_sequences, device) if val_sequences is not None else None
+
+    return train_sequences, val_sequences, scaler
 
 
 class StatePredictionModule:
@@ -36,7 +57,7 @@ class StatePredictionModule:
         self.model_params = params
 
         self.model = StepTimeLSTM(input_size=self.n_attr_in,
-                                  hidden_size=self.model_params.hidden_size,
+                                  lstm_hidden_size=self.model_params.lstm_hidden_size,
                                   n_lstm_layers=self.model_params.n_lstm_layers,
                                   output_size=self.n_attr_out * self.model_params.n_steps_predict,
                                   device=self.model_params.device,
@@ -78,8 +99,10 @@ class StatePredictionModule:
         for _, seq in enumerate(sequences):
 
             # Clear internal LSTM states
-            h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
-            c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+            h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
+                             device=self.model_params.device)
+            c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
+                             device=self.model_params.device)
 
             # Iterate over sequence_df
             for step_i in range(len(seq) - self.model_params.n_steps_predict):
@@ -129,7 +152,8 @@ class StatePredictionModule:
 
         return mean_loss
 
-    def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True) -> float:
+    def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
+              val_perc: float = 0.2) -> Tuple[float, float]:
         """
         Train the model
 
@@ -141,52 +165,78 @@ class StatePredictionModule:
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
-        patience_counter = 0 if params.es_patience is not None else None
-        min_target_loss_mean = np.inf
+        # TODO: Save checkpoints
+        early_stopping = EarlyStopping(self.model, patience=params.es_patience)
+
         train_losses = []
+        val_losses = []
 
         self.target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
                                    self.model_params.cols_predict] \
             if self.model_params.cols_predict is not None else None
 
-        # TODO: Chose random sequences instead of trimming
-        sequences = [s.values for s in sequences[:params.sequence_limit]]
+        train_sequences, val_sequences, scaler = dfs2tensors(sequences, val_perc=val_perc, limit=params.sequence_limit,
+                                                     device=self.model_params.device)
 
-        train_sequences, _, scaler = normalize_split(sequences, None)
-        train_sequences = seq2tensors(train_sequences, self.model_params.device)
-
+        # TODO: Refactor this part to separate functioun
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
-            curr_target_loss_mean = self._forward_sequences(train_sequences, is_eval=False,
-                                                            target_indexes=self.target_col_indexes)
-            train_loss_mean = curr_target_loss_mean
+            # Forward test data
+            train_loss = self._forward_sequences(train_sequences, is_eval=False,
+                                                 target_indexes=self.target_col_indexes)
 
-            train_losses.append(train_loss_mean)
+            # Forward val data
+            val_loss = self._forward_sequences(val_sequences, is_eval=True,
+                                               target_indexes=self.target_col_indexes)
 
-            print(f"\nMean train loss = {train_loss_mean}")
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
 
-            if params.es_patience is not None:
-                if curr_target_loss_mean < min_target_loss_mean:
-                    min_target_loss_mean = curr_target_loss_mean
-                    patience_counter = 0
-                else:
-                    patience_counter += 1
+            print(f"Train loss: {train_loss}, Val loss: {val_loss}")
 
-                if patience_counter >= params.es_patience:
-                    print("Early stopping")
-                    break
+            if early_stopping(val_loss):
+                print("Early stopping")
+                break
 
         self.scaler = scaler
 
+        # TODO: Save plots to directory
         if plot:
-            plt.plot(train_losses, label="Train loss")
+            plt.plot(train_losses, label="Train losses")
+            plt.plot(val_losses, label="Val losses")
             plt.legend()
             plt.show()
 
-        return train_losses[-1]
+        return train_losses[-1], val_losses[-1]
 
-    def predict(self, sequence_df: pd.DataFrame):
+    def data_transform(self, data: np.ndarray):
+        min_, max_ = self.scaler.feature_range
+        data_range_ = self.scaler.data_range_[self.target_col_indexes]
+        data_min_ = self.scaler.data_min_[self.target_col_indexes]
+
+        data = (data - data_min_) / data_range_
+        transformed = data * (max_ - min_) + min_
+
+        return transformed
+
+    def data_inverse_transform(self, data: np.ndarray):
+        min_, max_ = self.scaler.feature_range
+        inverse_data = (data - min_) / (max_ - min_)
+
+        data_range_ = self.scaler.data_range_[self.target_col_indexes]
+        data_min_ = self.scaler.data_min_[self.target_col_indexes]
+        inverse_data = inverse_data * data_range_ + data_min_
+
+        return inverse_data
+
+    def predict(self, sequence_df: pd.DataFrame, return_inv_transformed: bool = True) -> torch.Tensor:
+        """
+
+        :param sequence_df:
+        :param return_inv_transformed: Work on already transformed data
+        :return: Return inverse transformed and raw network output.
+        """
         sequence_array = sequence_df.values
 
         sequence_array = self.scaler.transform(sequence_array)
@@ -194,8 +244,10 @@ class StatePredictionModule:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
-        c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.hidden_size), device=self.model_params.device)
+        h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
+                         device=self.model_params.device)
+        c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
+                         device=self.model_params.device)
 
         out = None
 
@@ -210,13 +262,4 @@ class StatePredictionModule:
 
         out = out.to('cpu')
 
-        # Manual inverse_transform
-        min_, max_ = self.scaler.feature_range
-
-        out = (out - min_) / (max_ - min_)
-
-        data_range_ = self.scaler.data_range_[self.target_col_indexes]
-        data_min_ = self.scaler.data_min_[self.target_col_indexes]
-        out = out * data_range_ + data_min_
-
-        return out
+        return self.data_inverse_transform(out) if return_inv_transformed else out
