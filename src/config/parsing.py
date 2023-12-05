@@ -10,6 +10,7 @@ import yaml
 activation_dict = {
     "relu": F.relu,
     "sigmoid": F.sigmoid,
+    "selu": F.selu
 }
 
 
@@ -18,24 +19,29 @@ class ModelParams:
     """
     Class that contains all the data for neural network architecture
     """
-    device: torch.device
-    hidden_size: int = 64
-    n_lstm_layers: int = 2
+    cols_predict: Optional[list[str]] = None
     n_steps_predict: int = 1
-    cols_predict: Optional[list[str]] = None,
-    fccn_arch: list[int] = [32] * 5,
+
+    lstm_hidden_size: int = 64
+    n_lstm_layers: int = 2
+    lstm_dropout: int = 0.2
+
+    fccn_arch: Optional[list[int]] = None
     fccn_dropout_p: float = 0.15
     fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
 
+    device: torch.device = 'cpu'
+
     def __repr__(self):
         return f"{self.device=}\n" \
-               f"{self.hidden_size=}\n" \
+               f"{self.lstm_hidden_size=}\n" \
                f"{self.n_lstm_layers=}\n" \
                f"{self.n_steps_predict=}\n" \
-               f"{self.cols_predict=}\n" \
+               f"{self.lstm_dropout=}\n" \
                f"{self.fccn_arch=}\n" \
                f"{self.fccn_dropout_p=}\n" \
-               f"{self.fccn_activation=}\n"
+               f"{self.fccn_activation=}\n" \
+               f"{self.cols_predict=}\n"
 
 
 @dataclass
@@ -81,18 +87,23 @@ def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams, EvalParams]:
     # Extract model parameters
     model_params_data = data['model_params']['net_params']
     device = torch.device(model_params_data['device'])
-    hidden_size = model_params_data['hidden_size']
+
+    lstm_hidden_size = model_params_data['lstm_hidden_size']
     n_lstm_layers = model_params_data['n_lstm_layers']
+    lstm_dropout = model_params_data['lstm_dropout']
+
     n_steps_predict = data['model_params']['n_steps_predict']
     cols_predict = data['model_params']['cols_predict']
+
     fccn_arch = model_params_data['fccn_arch']
     fccn_dropout_p = model_params_data['fccn_dropout_p']
     fccn_activation_name = model_params_data['fccn_activation']
     fccn_activation = activation_dict.get(fccn_activation_name, F.relu)
 
-    model_params = ModelParams(device=device, hidden_size=hidden_size, n_lstm_layers=n_lstm_layers,
+    model_params = ModelParams(device=device, lstm_hidden_size=lstm_hidden_size, n_lstm_layers=n_lstm_layers,
                                n_steps_predict=n_steps_predict, cols_predict=cols_predict, fccn_arch=fccn_arch,
-                               fccn_dropout_p=fccn_dropout_p, fccn_activation=fccn_activation)
+                               fccn_dropout_p=fccn_dropout_p, fccn_activation=fccn_activation,
+                               lstm_dropout=lstm_dropout)
 
     # Extract training parameters
     train_params_data = data['train']
