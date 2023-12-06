@@ -4,15 +4,22 @@ model_params:
   n_steps_predict: 3 #How many future steps we predict?
   cols_predict: [ "creatinine" ] #Null value means we are predicting all fields
   net_params:
-    device: 'cuda'
-    hidden_size: 64
-    n_lstm_layers: 2
-    fccn_arch: [ 32, 32, 32, 32, 32 ]
+    lstm_hidden_size: 64
+    n_lstm_layers: 3
+    lstm_dropout: 0.2
+
+    fccn_arch: [ 64, 64, 32, 32 ]
     fccn_dropout_p: 0.2
-    fccn_activation: 'relu'
+    fccn_activation: 'selu'  # relu, selu, sigmoid
+
+    device: 'cuda'
     #Add learning rate and other params for network
 train:
-  es_patience: 4
-  epochs: 10
-  eval_n_splits: 5 #Number of KFolds split
-  sequence_limit: Null
+  es_patience: 3
+  epochs: 1
+  sequence_limit: 5 # No limit = Null
+eval:
+  es_patience: 3
+  epochs: 2
+  sequence_limit: 30 # No limit = Null
+  n_splits: 5

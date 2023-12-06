@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -12,14 +14,20 @@ warnings.filterwarnings("ignore",
 class StepTimeLSTM(nn.Module):
     def __init__(self,
                  input_size: int,
-                 hidden_size: int,
                  output_size: int,
+
+                 # LSTM params
                  n_lstm_layers: int = 2,
-                 device: torch.device = 'cpu',
-                 activation=F.relu,
+                 lstm_hidden_size: int = 128,
+                 lstm_dropout: float = 0.2,
+
+                 # FCCN params
                  fccn_arch: list[int] | None = None,
                  fccn_dropout_p: float = 0.15,
-                 fccn_activation=F.relu
+                 fccn_activation=F.relu,
+
+                 # Other
+                 device: torch.device = 'cpu',
                  ):
         super(StepTimeLSTM, self).__init__()
 
@@ -28,14 +36,16 @@ class StepTimeLSTM(nn.Module):
 
         self.fccn_dropout_p = fccn_dropout_p
         self.fccn_activation = fccn_activation
-        self.activation = activation
         self.lstm_num_layers = n_lstm_layers
+        self.lstm_dropout = lstm_dropout
 
-        self.hidden_size = hidden_size
+        self.lstm_hidden_size = lstm_hidden_size
         self.output_size = output_size
 
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, device=device,
-                            num_layers=self.lstm_num_layers, dropout=0.1)
+        self.device = device
+
+        self.lstm = nn.LSTM(input_size, lstm_hidden_size, batch_first=True, device=device,
+                            num_layers=self.lstm_num_layers, dropout=self.lstm_dropout)
 
         self.output_interpreter = LazyFCCN(hidden_sizes=self.fccn_arch,
                                            output_size=self.output_size,
@@ -43,31 +53,40 @@ class StepTimeLSTM(nn.Module):
                                            activation=self.fccn_activation,
                                            device=device)
 
-        memory_size = self.hidden_size * self.lstm_num_layers * 2
+        memory_size = self.lstm_hidden_size * self.lstm_num_layers * 2
         self.memory_arranger = LazyFCCN(hidden_sizes=[memory_size * 8, memory_size * 4, memory_size * 2],
                                         output_size=memory_size,
-                                        dropout_rate=0.05,
+                                        dropout_rate=self.lstm_dropout,
                                         activation=torch.tanh,
                                         device=device)
 
-    def forward(self, x, h0, c0):
+    def forward(self, x, h0: Optional[torch.Tensor] = None, c0: Optional[torch.Tensor] = None):
         """
         :param x: Input row
         :param h0: Previous h0 hidden state
         :param c0: Previous c0 hidden state
         :return: Predicted row and hidden states (hn, cn)
         """
+
+        if h0 is None:
+            h0 = torch.zeros((self.lstm_num_layers, self.lstm_hidden_size),
+                             device=self.device)
+
+        if c0 is None:
+            c0 = torch.zeros((self.lstm_num_layers, self.lstm_hidden_size),
+                             device=self.device)
+
         self.lstm.flatten_parameters()
         lstm_output, (hn, cn) = self.lstm(x, (h0, c0))
-
         lstm_output = torch.cat([lstm_output, hn, cn])
+
         lstm_output = lstm_output.view(1, -1)
         out = self.output_interpreter(lstm_output)
 
         lstm_memory = torch.cat([h0, c0, hn, cn])
         lstm_memory = lstm_memory.view(1, -1)
         lstm_memory_out = self.memory_arranger(lstm_memory)
-        lstm_memory_out = lstm_memory_out.view(2 * self.lstm_num_layers, self.hidden_size)
+        lstm_memory_out = lstm_memory_out.view(2 * self.lstm_num_layers, self.lstm_hidden_size)
 
         hn, cn = lstm_memory_out.split(self.lstm_num_layers)
 
