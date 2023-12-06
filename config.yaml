@@ -16,7 +16,7 @@ model_params:
     #Add learning rate and other params for network
 train:
   es_patience: 3
-  epochs: 1
+  epochs: 5
   sequence_limit: 5 # No limit = Null
 eval:
   es_patience: 3

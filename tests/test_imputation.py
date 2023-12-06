@@ -1,13 +1,11 @@
 import pandas as pd
 import numpy as np
-from numpy.ma import where
 from matplotlib import pyplot as plt
 
-import data.raw.colnames_original as c
-from src.preprocessing import transform
-from src.preprocessing import Preprocessor
+import data.colnames_original as c
+from src.preprocessing.utils import transform
 
-CSV_PATH = '../../data/clean/input.csv'
+CSV_PATH = '../data/input.csv'
 
 
 def groupby_split(df: pd.DataFrame, col: str, perc: float = 0.2):

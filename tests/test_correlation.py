@@ -1,9 +1,7 @@
-import numpy as np
 import pandas as pd
-import data.raw.colnames_original as c
-from data.raw.chosen_colnames import COLS
-from src.preprocessing import transform
-from src.preprocessing import onehot2categorical
+import data.colnames_original as c
+from data.chosen_colnames import COLS
+from src.preprocessing.utils import transform
 
 
 def correlation_ranking(dataframe):
@@ -26,7 +24,7 @@ def correlation_ranking(dataframe):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("../../data/clean/input.csv", usecols=COLS)
+    df = pd.read_csv("../data/input.csv", usecols=COLS)
 
     onehot_cols = None
 

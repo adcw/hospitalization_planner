@@ -1,10 +1,9 @@
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 import torch
 
-from src.preprocessing.transform import TransformData, transform
+from src.preprocessing.utils.transform import TransformData, transform
 
 
 class Preprocessor:

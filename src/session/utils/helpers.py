@@ -9,8 +9,8 @@ from sklearn.model_selection import KFold
 from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams, EvalParams
-from src.nn import StatePredictionModule
-from src.plotting import PredictionData, plot_sequences_with_predictions
+from src.models.state_prediction_module import StatePredictionModule
+from src.visualization.plotting import PredictionData, plot_sequences_with_predictions
 
 
 @dataclass

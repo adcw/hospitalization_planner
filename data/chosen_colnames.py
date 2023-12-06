@@ -1,4 +1,4 @@
-import data.raw.colnames_original as c
+import data.colnames_original as c
 
 COLS = [
     c.PATIENTID,

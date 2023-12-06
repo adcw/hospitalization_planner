@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-import data.raw.colnames as c
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 
 
@@ -43,7 +42,7 @@ def transform_sequences(val_seq: Optional[List[np.ndarray]], scaler: MinMaxScale
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("../../data/clean/input.csv")
+    df = pd.read_csv("../../../data/input.csv")
 
     onehot_cols = [c.POSIEW_SEPSA, c.TYPE_RDS]
 

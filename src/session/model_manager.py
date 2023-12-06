@@ -4,19 +4,18 @@ from pickle import load, dump
 
 import numpy as np
 import pandas as pd
-import torch
 
-import data.raw.colnames_original as c
-from src.nn import dfs2tensors
+import data.colnames_original as c
+from src.models.utils import dfs2tensors
+from src.preprocessing.preprocessor import Preprocessor
 
-from src.preprocessing import Preprocessor
-from src.session.helpers import train_model_helper, test_model_helper, ModelPayload, eval_model_helper
-from src.session.prompts import prompt_mode, prompt_model_file, prompt_model_name
+from src.session.utils.helpers import train_model_helper, test_model_helper, ModelPayload, eval_model_helper
+from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_model_name
 from src.config.parsing import parse_config
 
 from torch.utils.tensorboard import SummaryWriter
 
-CSV_PATH = './data/clean/input.csv'
+CSV_PATH = './data/input.csv'
 
 
 def _get_sequences() -> tuple[list[pd.DataFrame], Preprocessor]:
@@ -102,7 +101,7 @@ class ModelManager:
                     t = tensors[0]
                     t.resize(*t.size())
 
-                    self.summary_writer.add_graph(trained_model.model, input_to_model=t)
+                    # self.summary_writer.add_graph(trained_model.model, input_to_model=t)
 
                     pass
 
@@ -140,5 +139,5 @@ class ModelManager:
             raise ValueError(f"Unknown mode: {mode}")
 
         self.summary_writer.close()
-        print("Sleeping")
-        time.sleep(10000000)
+        # print("Sleeping")
+        # time.sleep(10000000)

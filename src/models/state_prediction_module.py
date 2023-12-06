@@ -1,48 +1,18 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sklearn.preprocessing
 import torch
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams
-from src.nn.archs import StepTimeLSTM
-from src.preprocessing import split_and_norm_sequences
-from src.utils.callbacks import EarlyStopping
-from sklearn.preprocessing import MinMaxScaler
+from src.models.utils import dfs2tensors
+from src.nn.archs.step_time_lstm import StepTimeLSTM
 
-
-# TODO: Move to utils
-def seq2tensors(sequences: list[np.ndarray], device: torch.device) -> List[torch.Tensor]:
-    tensors = []
-    for seq in sequences:
-        tensor = torch.Tensor(seq)
-        tensor = tensor.to(device)
-        tensors.append(tensor)
-    return tensors
-
-
-def dfs2tensors(df: List[pd.DataFrame],
-                limit: Optional[int] = None,
-                val_perc: Optional[float] = 0.2,
-                device: torch.device = "cuda"
-                ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]], MinMaxScaler]:
-    if limit:
-        # TODO: Choose random sequences instead of trimming
-        df = df[:limit].copy()
-
-    sequences = [s.values for s in df]
-
-    train_sequences, val_sequences, scaler = split_and_norm_sequences(sequences, val_perc)
-    train_sequences = seq2tensors(train_sequences, device)
-
-    val_sequences = seq2tensors(val_sequences, device) if len(val_sequences) != 0 else []
-
-    return train_sequences, val_sequences, scaler
+from src.nn.callbacks.early_stopping import EarlyStopping
 
 
 class StatePredictionModule:
