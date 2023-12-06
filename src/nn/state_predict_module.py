@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sklearn.preprocessing
 import torch
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
@@ -12,6 +13,7 @@ from src.config.parsing import ModelParams, TrainParams
 from src.nn.archs import StepTimeLSTM
 from src.preprocessing import split_and_norm_sequences
 from src.utils.callbacks import EarlyStopping
+from sklearn.preprocessing import MinMaxScaler
 
 
 # TODO: Move to utils
@@ -28,7 +30,7 @@ def dfs2tensors(df: List[pd.DataFrame],
                 limit: Optional[int] = None,
                 val_perc: Optional[float] = 0.2,
                 device: torch.device = "cuda"
-                ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]]]:
+                ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]], MinMaxScaler]:
     if limit:
         # TODO: Choose random sequences instead of trimming
         df = df[:limit].copy()
@@ -38,7 +40,7 @@ def dfs2tensors(df: List[pd.DataFrame],
     train_sequences, val_sequences, scaler = split_and_norm_sequences(sequences, val_perc)
     train_sequences = seq2tensors(train_sequences, device)
 
-    val_sequences = seq2tensors(val_sequences, device) if val_sequences is not None else None
+    val_sequences = seq2tensors(val_sequences, device) if len(val_sequences) != 0 else []
 
     return train_sequences, val_sequences, scaler
 
@@ -97,12 +99,8 @@ class StatePredictionModule:
 
         # Forward all sequences
         for _, seq in enumerate(sequences):
-
-            # Clear internal LSTM states
-            h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
-                             device=self.model_params.device)
-            c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
-                             device=self.model_params.device)
+            h0 = None
+            c0 = None
 
             # Iterate over sequence_df
             for step_i in range(len(seq) - self.model_params.n_steps_predict):
@@ -124,9 +122,9 @@ class StatePredictionModule:
 
                 if is_eval:
                     with torch.no_grad():
-                        outputs, (hn, cn) = self.model(input_step, h0, c0)
+                        outputs, (hn, cn) = self.model(input_step)
                 else:
-                    outputs, (hn, cn) = self.model(input_step, h0, c0)
+                    outputs, (hn, cn) = self.model(input_step)
 
                 outputs = outputs.view(self.model_params.n_steps_predict,
                                        round(outputs.shape[1] / self.model_params.n_steps_predict))
@@ -176,7 +174,7 @@ class StatePredictionModule:
             if self.model_params.cols_predict is not None else None
 
         train_sequences, val_sequences, scaler = dfs2tensors(sequences, val_perc=val_perc, limit=params.sequence_limit,
-                                                     device=self.model_params.device)
+                                                             device=self.model_params.device)
 
         # TODO: Refactor this part to separate functioun
         for epoch in range(params.epochs):
