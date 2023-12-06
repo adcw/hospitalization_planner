@@ -133,7 +133,6 @@ class StatePredictionModule:
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
-        # TODO: Save checkpoints
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
         train_losses = []
@@ -167,6 +166,7 @@ class StatePredictionModule:
                 print("Early stopping")
                 break
 
+        early_stopping.retrieve()
         self.scaler = scaler
 
         # TODO: Save plots to directory

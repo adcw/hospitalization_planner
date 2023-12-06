@@ -28,6 +28,7 @@ class ModelParams:
     fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
 
     device: torch.device = 'cpu'
+    save_path: str = 'models'
 
     def __repr__(self):
         return f"{self.device=}\n" \
@@ -38,7 +39,8 @@ class ModelParams:
                f"{self.fccn_arch=}\n" \
                f"{self.fccn_dropout_p=}\n" \
                f"{self.fccn_activation=}\n" \
-               f"{self.cols_predict=}\n"
+               f"{self.cols_predict=}" \
+               f"{self.save_path=}\n"
 
 
 @dataclass

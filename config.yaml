@@ -13,6 +13,7 @@ model_params:
     fccn_activation: 'selu'  # relu, selu, sigmoid
 
     device: 'cuda'
+    save_path: 'models'
     #Add learning rate and other params for network
 train:
   es_patience: 3
@@ -20,6 +21,6 @@ train:
   sequence_limit: 5 # No limit = Null
 eval:
   es_patience: 3
-  epochs: 2
+  epochs: 3
   sequence_limit: 30 # No limit = Null
   n_splits: 5

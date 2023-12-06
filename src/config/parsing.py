@@ -27,10 +27,12 @@ def parse_config(yaml_path: str) -> Tuple[ModelParams, TrainParams, EvalParams]:
     fccn_activation_name = model_params_data['fccn_activation']
     fccn_activation = activation_dict.get(fccn_activation_name, F.relu)
 
+    save_path = model_params_data['save_path']
+
     model_params = ModelParams(device=device, lstm_hidden_size=lstm_hidden_size, n_lstm_layers=n_lstm_layers,
                                n_steps_predict=n_steps_predict, cols_predict=cols_predict, fccn_arch=fccn_arch,
                                fccn_dropout_p=fccn_dropout_p, fccn_activation=fccn_activation,
-                               lstm_dropout=lstm_dropout)
+                               lstm_dropout=lstm_dropout, save_path=save_path)
 
     # Extract training parameters
     train_params_data = data['train']

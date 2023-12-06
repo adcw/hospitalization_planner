@@ -4,11 +4,9 @@ from pickle import load, dump
 
 import numpy as np
 import pandas as pd
-from torch.utils.tensorboard import SummaryWriter
 
 import data.colnames_original as c
 from src.config.parsing import parse_config
-from src.models.utils import dfs2tensors
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.model_payload import ModelPayload
@@ -73,8 +71,6 @@ class ModelManager:
         self.sequences_train = sequences[split_point:]
         self.sequences_test = sequences
 
-        self.summary_writer = SummaryWriter("runs")
-
     def start(self):
         mode = prompt_mode()
 
@@ -96,15 +92,6 @@ class ModelManager:
 
                 with open(f"{self.models_dir}/{model_name}", "wb+") as file:
                     dump(payload, file)
-
-                    tensors, _, _ = dfs2tensors(self.sequences_test, limit=20, device=self.model_params.device,
-                                                val_perc=0)
-                    t = tensors[0]
-                    t.resize(*t.size())
-
-                    # self.summary_writer.add_graph(trained_model.model, input_to_model=t)
-
-                    pass
 
         elif mode == "test":
             model_filename = prompt_model_file(self.models_dir)
@@ -138,7 +125,3 @@ class ModelManager:
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")
-
-        self.summary_writer.close()
-        # print("Sleeping")
-        # time.sleep(10000000)

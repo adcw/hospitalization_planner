@@ -4,13 +4,14 @@ import torch
 
 
 class EarlyStopping:
-    def __init__(self, model, patience: Optional[int] = 5, delta=0, path=None):
+    def __init__(self, model: torch.nn.Module, patience: Optional[int] = 5, delta=0):
         self.patience = patience
         self.delta = delta
-        self.path = path
         self.counter = 0
         self.best_score = None
         self.model = model
+
+        self.best_state_dict = None
 
     def __call__(self, val_loss):
         if self.best_score is None:
@@ -29,5 +30,11 @@ class EarlyStopping:
         return self.counter >= self.patience
 
     def save_checkpoint(self):
-        if self.path is not None:
-            torch.save(self.model.state_dict(), self.path)
+        self.best_state_dict = self.model.state_dict()
+
+    def retrieve(self):
+        """
+        Retrieve model state with the lowest val loss
+        :return:
+        """
+        self.model.load_state_dict(self.best_state_dict)
