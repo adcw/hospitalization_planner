@@ -4,16 +4,17 @@ from pickle import load, dump
 
 import numpy as np
 import pandas as pd
+from torch.utils.tensorboard import SummaryWriter
 
 import data.colnames_original as c
+from src.config.parsing import parse_config
 from src.models.utils import dfs2tensors
 from src.preprocessing.preprocessor import Preprocessor
-
-from src.session.utils.helpers import train_model_helper, test_model_helper, ModelPayload, eval_model_helper
+from src.session.helpers.eval import eval_model
+from src.session.helpers.model_payload import ModelPayload
+from src.session.helpers.test import test_model
+from src.session.helpers.train import train_model
 from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_model_name
-from src.config.parsing import parse_config
-
-from torch.utils.tensorboard import SummaryWriter
 
 CSV_PATH = './data/input.csv'
 
@@ -85,8 +86,8 @@ class ModelManager:
 
             time.sleep(1)
 
-            trained_model = train_model_helper(model_params=self.model_params, train_params=self.train_params,
-                                               sequences=self.sequences_train)
+            trained_model = train_model(model_params=self.model_params, train_params=self.train_params,
+                                        sequences=self.sequences_train)
 
             model_name = prompt_model_name()
             if model_name:
@@ -121,7 +122,7 @@ class ModelManager:
 
                 time.sleep(1)
 
-                test_model_helper(model_payload, sequences=self.sequences_test, limit=4)
+                test_model(model_payload, sequences=self.sequences_test, limit=4)
 
         elif mode == "eval":
             model_params, train_params, eval_params = parse_config(self.config_path)
@@ -133,7 +134,7 @@ class ModelManager:
 
             time.sleep(1)
 
-            eval_model_helper(model_payload, self.sequences_train + self.sequences_test)
+            eval_model(model_payload, self.sequences_train + self.sequences_test)
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")
