@@ -4,13 +4,17 @@ from pickle import load, dump
 
 import numpy as np
 import pandas as pd
+import torch
 
 import data.raw.colnames_original as c
+from src.nn import dfs2tensors
 
 from src.preprocessing import Preprocessor
 from src.session.helpers import train_model_helper, test_model_helper, ModelPayload, eval_model_helper
 from src.session.prompts import prompt_mode, prompt_model_file, prompt_model_name
 from src.config.parsing import parse_config
+
+from torch.utils.tensorboard import SummaryWriter
 
 CSV_PATH = './data/clean/input.csv'
 
@@ -67,7 +71,9 @@ class ModelManager:
         split_point = round(test_perc * len(sequences))
 
         self.sequences_train = sequences[split_point:]
-        self.sequences_test = sequences[:split_point]
+        self.sequences_test = sequences
+
+        self.summary_writer = SummaryWriter("runs")
 
     def start(self):
         mode = prompt_mode()
@@ -82,13 +88,23 @@ class ModelManager:
 
             trained_model = train_model_helper(model_params=self.model_params, train_params=self.train_params,
                                                sequences=self.sequences_train)
+
             model_name = prompt_model_name()
             if model_name:
                 payload = ModelPayload(model=trained_model, model_params=self.model_params,
-                                       train_params=self.train_params)
+                                       train_params=self.train_params, eval_params=self.eval_params)
 
                 with open(f"{self.models_dir}/{model_name}", "wb+") as file:
                     dump(payload, file)
+
+                    tensors, _, _ = dfs2tensors(self.sequences_test, limit=20, device=self.model_params.device,
+                                                val_perc=0)
+                    t = tensors[0]
+                    t.resize(*t.size())
+
+                    self.summary_writer.add_graph(trained_model.model, input_to_model=t)
+
+                    pass
 
         elif mode == "test":
             model_filename = prompt_model_file(self.models_dir)
@@ -106,7 +122,7 @@ class ModelManager:
 
                 time.sleep(1)
 
-                test_model_helper(model_payload, sequences=self.sequences_test)
+                test_model_helper(model_payload, sequences=self.sequences_test, limit=4)
 
         elif mode == "eval":
             model_params, train_params, eval_params = parse_config(self.config_path)
@@ -122,3 +138,7 @@ class ModelManager:
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")
+
+        self.summary_writer.close()
+        print("Sleeping")
+        time.sleep(10000000)

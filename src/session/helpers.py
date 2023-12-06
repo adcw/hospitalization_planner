@@ -45,10 +45,13 @@ def eval_model_helper(
     train_params.epochs = eval_params.epochs
     train_params.es_patience = eval_params.es_patience
 
+    sequences = sequences[:payload.eval_params.sequence_limit]
+
     kf = KFold(n_splits=eval_params.n_splits, shuffle=True)
 
-    val_losses = []
     train_losses = []
+    val_losses = []
+    test_losses = []
 
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
@@ -60,30 +63,37 @@ def eval_model_helper(
         val_sequences = [sequences[i] for i in val_index]
 
         # Train on sequences
-        train_loss = model.train(train_params, train_sequences, plot=False)
+        train_loss, val_loss = model.train(train_params, train_sequences, plot=False)
         model_payload = deepcopy(payload)
         model_payload.model = model
 
         # Perform test
-        mean_val_loss = test_model_helper(model_payload, val_sequences, limit=None, plot=False, max_per_sequence=None)
+        test_loss = test_model_helper(model_payload, val_sequences, limit=None, plot=False, max_per_sequence=None)
 
         # TODO: Mak eot cleaner
-        val_losses.append(mean_val_loss)
-        train_losses.append(train_loss)
-        print(f"Mean validation loss: {mean_val_loss}")
 
-    plt.plot(val_losses, 'o', label="val_loss")
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        test_losses.append(test_loss)
+        print(f"Mean test loss: {test_loss}")
+
     plt.plot(train_losses, 'o', label="train_loss")
+    plt.plot(val_losses, 'o', label="val_loss")
+    plt.plot(test_losses, 'o', label="test_loss")
 
     # Adding text labels near data markers
-    for i, value in enumerate(val_losses):
-        s = f'{value:.4f}' if value is not None else ""
-        plt.text(i, value, s, ha='center', va='bottom')
 
     for i, value in enumerate(train_losses):
         plt.text(i, value, f'{value:.4f}', ha='center', va='bottom')
 
-    plt.title(f"Losses on each fold. Avg = {np.average(val_losses)}")
+    for i, value in enumerate(val_losses):
+        plt.text(i, value, f'{value:.4f}', ha='center', va='bottom')
+
+    for i, value in enumerate(test_losses):
+        s = f'{value:.4f}' if value is not None else ""
+        plt.text(i, value, s, ha='center', va='bottom')
+
+    plt.title(f"Losses on each fold. Avg = {np.average(test_losses)}")
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -97,7 +107,7 @@ def test_model_helper(
         limit: Optional[int] = 30,
         offset: int = 0,
 
-        max_per_sequence: Optional[int] = 3,
+        max_per_sequence: Optional[int] = 10,
         plot: bool = True
 ):
     cnt = 0
@@ -126,17 +136,21 @@ def test_model_helper(
 
             x_real = seq[:point]
 
-            if x_real.shape[0] != model_payload.model_params.n_steps_predict:
-                continue
-
             y_real = seq[point:point + model_payload.model_params.n_steps_predict] \
                          .iloc[:, model_payload.model.target_col_indexes].values
 
-            y_pred = model_payload.model.predict(x_real)
+            if y_real.shape[0] != model_payload.model_params.n_steps_predict or x_real.shape[0] == 0:
+                continue
+
+            y_real_raw = model_payload.model.data_transform(y_real)
+
+            y_pred_raw = model_payload.model.predict(x_real, return_inv_transformed=False)
+            y_pred = model_payload.model.data_inverse_transform(y_pred_raw)
+
             y_pred = y_pred.reshape((y_pred.shape[1], -1))
 
             # Calculate losses
-            loss = np.mean((y_real - np.array(y_pred)) ** 2)
+            loss = np.mean((np.array(y_real_raw) - np.array(y_pred_raw)) ** 2)
             loss_sum += loss
             loss_calc_count += 1
 
