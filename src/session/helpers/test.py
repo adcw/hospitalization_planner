@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.session.helpers.model_payload import ModelPayload
+from src.session.helpers.model_payload import SessionPayload
 from src.visualization.predictions import PredictionData, plot_sequences_with_predictions
 
 
 def test_model(
-        model_payload: ModelPayload,
+        model_payload: SessionPayload,
         sequences: list[pd.DataFrame],
         limit: Optional[int] = 30,
         offset: int = 0,

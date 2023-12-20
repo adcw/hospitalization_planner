@@ -1,5 +1,6 @@
 import os
 import time
+from copy import deepcopy
 from pickle import load, dump
 
 import numpy as np
@@ -10,7 +11,7 @@ from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
-from src.session.helpers.model_payload import ModelPayload
+from src.session.helpers.model_payload import SessionPayload
 from src.session.helpers.test import test_model
 from src.session.helpers.train import train_model
 from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_model_name
@@ -64,7 +65,10 @@ class ModelManager:
         if not os.path.exists(self.models_dir):
             os.mkdir(self.models_dir)
 
-        self.model_params, self.train_params, self.eval_params = parse_config(config_path)
+        model_params, train_params, eval_params = parse_config(config_path)
+        self.session_payload = SessionPayload(model_params=model_params, train_params=train_params,
+                                              eval_params=eval_params,
+                                              model=None)
 
         sequences, self.preprocessor = _get_sequences()
         split_point = round(test_perc * len(sequences))
@@ -76,26 +80,26 @@ class ModelManager:
         mode = prompt_mode()
 
         if mode == "train":
-            print("Read model params:")
-            print(self.model_params)
-            print("Read train params:")
-            print(self.train_params)
+            print("Read model session_payload:")
+            print(self.session_payload.model_params)
+            print("Read train session_payload:")
+            print(self.session_payload.train_params)
 
             time.sleep(1)
 
-            trained_model = train_model(model_params=self.model_params, train_params=self.train_params,
+            trained_model = train_model(payload=self.session_payload,
                                         sequences=self.sequences_train)
 
-            payload = ModelPayload(model=trained_model, model_params=self.model_params,
-                                   train_params=self.train_params, eval_params=self.eval_params)
+            payload = SessionPayload(model=trained_model, model_params=self.session_payload.model_params,
+                                     train_params=self.session_payload.train_params,
+                                     eval_params=self.session_payload.eval_params)
 
             test_model(payload, sequences=self.sequences_test, limit=30)
 
             model_name = prompt_model_name()
             if model_name:
-                payload = ModelPayload(model=trained_model, model_params=self.model_params,
-                                       train_params=self.train_params, eval_params=self.eval_params)
-
+                payload = deepcopy(self.session_payload)
+                payload.model = trained_model
                 with open(f"{self.models_dir}/{model_name}", "wb+") as file:
                     dump(payload, file)
 
@@ -106,11 +110,11 @@ class ModelManager:
                 raise UserWarning("Where are no models inside directory.")
 
             with open(f"{self.models_dir}/{model_filename}", "rb") as file:
-                model_payload: ModelPayload = load(file)
+                model_payload: SessionPayload = load(file)
 
-                print("Read model params:")
+                print("Read model session_payload:")
                 print(model_payload.model_params)
-                print("Read train params:")
+                print("Read train session_payload:")
                 print(model_payload.train_params)
 
                 time.sleep(1)
@@ -118,16 +122,13 @@ class ModelManager:
                 test_model(model_payload, sequences=self.sequences_test, limit=30)
 
         elif mode == "eval":
-            model_params, train_params, eval_params = parse_config(self.config_path)
-            model_payload = ModelPayload(model_params=model_params, train_params=train_params, eval_params=eval_params,
-                                         model=None)
 
-            print("Read eval params:")
-            print(model_payload.eval_params)
+            print("Read eval session_payload:")
+            print(self.session_payload.eval_params)
 
             time.sleep(1)
 
-            eval_model(model_payload, self.sequences_train + self.sequences_test)
+            eval_model(self.session_payload, self.sequences_train + self.sequences_test)
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")
