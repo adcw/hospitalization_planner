@@ -13,6 +13,7 @@ from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
 
 from src.nn.callbacks.early_stopping import EarlyStopping
+from src.nn.callbacks.metrics import MAECounter
 
 
 class StatePredictionModule:
@@ -48,7 +49,7 @@ class StatePredictionModule:
                            sequences: list[torch.Tensor],
                            is_eval: bool = False,
                            target_indexes: list[int] | None = None
-                           ) -> float:
+                           ) -> Tuple[float, float]:
         """
         Forward list of sequences through model.
 
@@ -60,6 +61,7 @@ class StatePredictionModule:
 
         # Track overall loss
         loss_sum = 0
+        mae_counter = MAECounter()
 
         # Select proper mode
         if is_eval:
@@ -92,9 +94,9 @@ class StatePredictionModule:
 
                 if is_eval:
                     with torch.no_grad():
-                        outputs, (hn, cn) = self.model(input_step)
+                        outputs, (hn, cn) = self.model(input_step, h0, c0)
                 else:
-                    outputs, (hn, cn) = self.model(input_step)
+                    outputs, (hn, cn) = self.model(input_step, h0, c0)
 
                 outputs = outputs.view(self.model_params.n_steps_predict,
                                        round(outputs.shape[1] / self.model_params.n_steps_predict))
@@ -104,6 +106,8 @@ class StatePredictionModule:
                 last_loss = loss.item()
                 train_progress.set_postfix({"Loss": last_loss})
                 loss_sum += last_loss
+
+                mae_counter.publish(outputs, output_step)
 
                 # preserve internal LSTM states
                 h0, c0 = hn.detach(), cn.detach()
@@ -117,8 +121,9 @@ class StatePredictionModule:
 
         # Return mean loss
         mean_loss = loss_sum / train_progress.total
+        mean_mae_loss = mae_counter.retrieve()
 
-        return mean_loss
+        return mean_loss, mean_mae_loss
 
     def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
               val_perc: float = 0.2) -> Tuple[float, float]:
@@ -130,8 +135,11 @@ class StatePredictionModule:
         :param sequences: A list of sequences to be learned
         :return: Final training loss
         """
-        self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        # self.criterion = nn.MSELoss()
+        self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
+        # self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.005, momentum=0.9,
+                                   nesterov=True)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
@@ -150,17 +158,18 @@ class StatePredictionModule:
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # Forward test data
-            train_loss = self._forward_sequences(train_sequences, is_eval=False,
-                                                 target_indexes=self.target_col_indexes)
+            train_loss, mae_train_loss = self._forward_sequences(train_sequences, is_eval=False,
+                                                                 target_indexes=self.target_col_indexes)
 
             # Forward val data
-            val_loss = self._forward_sequences(val_sequences, is_eval=True,
-                                               target_indexes=self.target_col_indexes)
+            val_loss, mae_val_loss = self._forward_sequences(val_sequences, is_eval=True,
+                                                             target_indexes=self.target_col_indexes)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
 
             print(f"Train loss: {train_loss}, Val loss: {val_loss}")
+            print(f"Train MAE: {mae_train_loss}, Val MAE: {mae_val_loss}")
 
             if early_stopping(val_loss):
                 print("Early stopping")
