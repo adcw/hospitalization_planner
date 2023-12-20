@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 import data.colnames_original as c
+from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
@@ -19,7 +20,7 @@ CSV_PATH = './data/input.csv'
 
 def _get_sequences() -> tuple[list[pd.DataFrame], Preprocessor]:
     # read data
-    whole_df = pd.read_csv(CSV_PATH, dtype=object)
+    whole_df = pd.read_csv(CSV_PATH, dtype=object, usecols=COLS)
 
     # replace literals with values
     whole_df.replace("YES", 1., inplace=True)
@@ -109,7 +110,7 @@ class ModelManager:
 
                 time.sleep(1)
 
-                test_model(model_payload, sequences=self.sequences_test, limit=4)
+                test_model(model_payload, sequences=self.sequences_test, limit=30)
 
         elif mode == "eval":
             model_params, train_params, eval_params = parse_config(self.config_path)

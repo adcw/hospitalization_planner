@@ -8,7 +8,7 @@ COLS = [
     c.FIO2,
     c.PO2,
     c.PTL,
-    c.CREATININE,
+    # c.CREATININE,
     c.TOTAL_BILIRUBIN,
 
     # c.POSIEW_SEPSA,
