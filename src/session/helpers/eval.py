@@ -45,7 +45,7 @@ def eval_model(
         # Perform test
         test_loss = test_model(model_payload, val_sequences, limit=None, plot=False, max_per_sequence=None)
 
-        # TODO: Mak eot cleaner
+        test_model(model_payload, sequences=val_sequences, limit=30)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
@@ -72,5 +72,3 @@ def eval_model(
     plt.legend()
     plt.grid(True)
     plt.show()
-
-    pass
