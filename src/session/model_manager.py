@@ -86,6 +86,11 @@ class ModelManager:
             trained_model = train_model(model_params=self.model_params, train_params=self.train_params,
                                         sequences=self.sequences_train)
 
+            payload = ModelPayload(model=trained_model, model_params=self.model_params,
+                                   train_params=self.train_params, eval_params=self.eval_params)
+
+            test_model(payload, sequences=self.sequences_test, limit=30)
+
             model_name = prompt_model_name()
             if model_name:
                 payload = ModelPayload(model=trained_model, model_params=self.model_params,
