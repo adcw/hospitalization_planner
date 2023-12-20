@@ -1,7 +1,7 @@
 import pandas as pd
 import data.colnames_original as c
 from data.chosen_colnames import COLS
-from src.preprocessing.utils import transform
+from src.preprocessing.utils.transform import transform
 
 
 def correlation_ranking(dataframe):

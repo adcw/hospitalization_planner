@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import data.colnames_original as c
-from src.preprocessing.utils import transform
+from src.preprocessing.utils.transform import transform
 
 CSV_PATH = '../data/input.csv'
 
