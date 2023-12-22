@@ -2,6 +2,7 @@ import os
 import time
 from copy import deepcopy
 from pickle import load, dump
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,7 @@ import pandas as pd
 import data.colnames_original as c
 from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
+from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.model_payload import SessionPayload
@@ -19,9 +21,9 @@ from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_mod
 CSV_PATH = './data/input.csv'
 
 
-def _get_sequences() -> tuple[list[pd.DataFrame], Preprocessor]:
+def _get_sequences(path: str = CSV_PATH, limit: int = None) -> tuple[list[pd.DataFrame], Preprocessor]:
     # read data
-    whole_df = pd.read_csv(CSV_PATH, dtype=object, usecols=COLS)
+    whole_df = pd.read_csv(path, dtype=object, usecols=COLS)
 
     # replace literals with values
     whole_df.replace("YES", 1., inplace=True)
@@ -45,6 +47,7 @@ def _get_sequences() -> tuple[list[pd.DataFrame], Preprocessor]:
                                 drop_na=True)
 
     sequences = preprocessor.fit_transform(whole_df)
+    np.random.shuffle(sequences)
 
     return sequences, preprocessor
 
@@ -59,6 +62,8 @@ class ModelManager:
 
         :param models_dir: Path to save and load models
         """
+        self.sequences_test = None
+        self.sequences_train = None
         self.models_dir = models_dir
         self.config_path = config_path
 
@@ -70,11 +75,13 @@ class ModelManager:
                                               eval_params=eval_params,
                                               model=None)
 
-        sequences, self.preprocessor = _get_sequences()
-        split_point = round(test_perc * len(sequences))
+        self.sequences, self.preprocessor = _get_sequences()
 
-        self.sequences_train = sequences[split_point:]
-        self.sequences_test = sequences
+    def _split_sequences(self, limit: int = None):
+        splitter = RegressionTrainTestSplitter()
+        self.sequences_train, self.sequences_test = splitter.fit_split(
+            self.sequences[:limit], test_size=0.1,
+            n_clusters=7)
 
     def start(self):
         mode = prompt_mode()
@@ -84,6 +91,8 @@ class ModelManager:
             print(self.session_payload.model_params)
             print("Read train session_payload:")
             print(self.session_payload.train_params)
+
+            self._split_sequences(self.session_payload.train_params.sequence_limit)
 
             time.sleep(1)
 
@@ -105,6 +114,7 @@ class ModelManager:
 
         elif mode == "test":
             model_filename = prompt_model_file(self.models_dir)
+            self._split_sequences(self.session_payload.train_params.sequence_limit)
 
             if model_filename is None:
                 raise UserWarning("Where are no models inside directory.")
@@ -122,6 +132,7 @@ class ModelManager:
                 test_model(model_payload, sequences=self.sequences_test, limit=30)
 
         elif mode == "eval":
+            self._split_sequences(self.session_payload.eval_params.sequence_limit)
 
             print("Read eval session_payload:")
             print(self.session_payload.eval_params)

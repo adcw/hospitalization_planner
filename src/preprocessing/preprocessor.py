@@ -31,6 +31,12 @@ class Preprocessor:
             self,
             input_df: pd.DataFrame,
     ) -> list[pd.DataFrame]:
+        """
+        Encode values and group
+        :param input_df:
+        :return:
+        """
+
         exclude_cols = self.group_cols.copy()
         exclude_cols.append(self.group_sort_col)
 
