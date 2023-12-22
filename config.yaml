@@ -2,25 +2,26 @@
 # basically how to create the next instance of model.
 model_params:
   n_steps_predict: 3 #How many future steps we predict?
-  cols_predict: [ "creatinine" ] #Null value means we are predicting all fields
+  cols_predict: [ "respiration" ] #Null value means we are predicting all fields
   net_params:
-    lstm_hidden_size: 64
+    lstm_hidden_size: 8
     n_lstm_layers: 3
-    lstm_dropout: 0.2
+    lstm_dropout: 0.15
 
-    fccn_arch: [ 64, 64, 32, 32 ]
-    fccn_dropout_p: 0.2
+    fccn_arch: [ 128, 64, 32, 8 ]
+    fccn_dropout_p: 0.15
     fccn_activation: 'selu'  # relu, selu, sigmoid
 
-    device: 'cuda'
+    device: 'cuda:0'
     save_path: 'models'
-    #Add learning rate and other params for network
+    #Add learning rate and other session_payload for network
 train:
-  es_patience: 3
-  epochs: 5
-  sequence_limit: 5 # No limit = Null
+  es_patience: 6
+  epochs: 50
+  sequence_limit: Null # No limit = Null
+
 eval:
-  es_patience: 3
-  epochs: 3
-  sequence_limit: 30 # No limit = Null
+  es_patience: 5
+  epochs: 10
+  sequence_limit: 15 # No limit = Null
   n_splits: 5
