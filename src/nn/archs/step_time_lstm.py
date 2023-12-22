@@ -78,10 +78,13 @@ class StepTimeLSTM(nn.Module):
 
         lstm_output = lstm_output.view(1, -1)
         out = self.output_interpreter(lstm_output)
+        out = F.sigmoid(out)
 
         lstm_memory = torch.cat([h0, c0, hn, cn])
         lstm_memory = lstm_memory.view(1, -1)
         lstm_memory_out = self.memory_arranger(lstm_memory)
+        lstm_memory_out = F.tanh(lstm_memory_out)
+
         lstm_memory_out = lstm_memory_out.view(2 * self.lstm_num_layers, self.lstm_hidden_size)
 
         hn, cn = lstm_memory_out.split(self.lstm_num_layers)
