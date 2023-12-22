@@ -22,7 +22,24 @@ def correlation_ranking(dataframe):
 
     return ranking_df
 
-
+"""
+ptl
+po2
+FiO2
+ANTYBIOTYK
+RTG_RDS
+AMINA_PRESYJNA
+dopamina
+dobutamina
+AMINOGLIKOZYD
+STERYD
+RTG_PDA
+GENERAL_PDA_CLOSED
+adrenalina
+PENICELINA1
+GENERAL_SURFACTANT
+KARBAPENEM
+"""
 if __name__ == '__main__':
     df = pd.read_csv("../data/input.csv", usecols=COLS)
 
@@ -38,5 +55,13 @@ if __name__ == '__main__':
     corr_ranking = correlation_ranking(preprocessed_df)
 
     print(corr_ranking.head(20))
+
+    respiration_ranking = corr_ranking[corr_ranking[corr_ranking.columns.values[1]] == c.RESPIRATION]
+
+    vals = respiration_ranking[respiration_ranking.columns.values[2]]
+    respiration_ranking = respiration_ranking[abs(vals) > 0.1]
+
+    corr_colnames = respiration_ranking[respiration_ranking.columns.values[0]]
+
 
     pass
