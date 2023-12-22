@@ -135,11 +135,9 @@ class StatePredictionModule:
         :param sequences: A list of sequences to be learned
         :return: Final training loss
         """
-        # self.criterion = nn.MSELoss()
-        self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        # self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-        self.optimizer = optim.SGD(self.model.parameters(), lr=0.005, momentum=0.9,
-                                   nesterov=True)
+        self.criterion = nn.MSELoss()
+        # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
