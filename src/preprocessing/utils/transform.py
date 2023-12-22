@@ -23,13 +23,14 @@ def transform(
         impute_dict: dict[[str], list[str]] | None = None,
 ) -> tuple[pd.DataFrame, TransformData]:
     """
+    Onehot encoding, Rank encoding and imputation
+
     :param rank_dict: Dictionary containing column names as strings
      and value of array with items ranked from best to worst
     :param input_df:
     :param onehot_cols:
-    :param impute_dict: Dictionary containing keys and values. Key denotes imputation target,
-    values are colum names used to impute the target
-    :return:
+    :param impute_dict: Dictionary containing keys and values. Key denotes imputation target, values are colunm names used to impute the target
+    :return
     """
     df_cols = input_df.columns
     onehot_encoder = None
