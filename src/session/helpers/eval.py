@@ -6,15 +6,15 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 from src.models.state_prediction_module import StatePredictionModule
-from src.session.helpers.model_payload import ModelPayload
+from src.session.helpers.model_payload import SessionPayload
 from src.session.helpers.test import test_model
 
 
 def eval_model(
-        payload: ModelPayload,
+        payload: SessionPayload,
         sequences: list[pd.DataFrame],
 ):
-    # Retrieve params, prepare training params to perform CV
+    # Retrieve session_payload, prepare training session_payload to perform CV
     eval_params = payload.eval_params
     train_params = deepcopy(payload.train_params)
     train_params.epochs = eval_params.epochs

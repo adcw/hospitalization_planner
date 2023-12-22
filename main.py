@@ -7,5 +7,5 @@ from src.config.seeds import set_seed
 if __name__ == '__main__':
     set_seed(9999)
 
-    manager = ModelManager(models_dir='./models', config_path="./config.yaml")
+    manager = ModelManager(models_dir='./models', config_path="./config.yaml", test_perc=0.1)
     manager.start()
