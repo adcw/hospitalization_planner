@@ -62,9 +62,15 @@ class WindowedModule:
                                                           criterion=self.criterion,
                                                           target_indexes=self.target_col_indexes)
 
-            pass
+            val_loss, mae_val_loss = windowed_forward(val_sequences, is_eval=True,
+                                                      model=self.model,
+                                                      model_params=self.model_params,
+                                                      optimizer=self.optimizer,
+                                                      criterion=self.criterion,
+                                                      target_indexes=self.target_col_indexes)
 
-            val_loss, mae_val_loss = ...
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
 
             print(f"Train loss: {train_loss}, Val loss: {val_loss}")
             print(f"Train MAE: {mae_train_loss}, Val MAE: {mae_val_loss}")
