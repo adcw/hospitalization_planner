@@ -6,20 +6,19 @@ import pandas as pd
 import torch
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
-from tqdm import tqdm
 
 from src.config.parsing import ModelParams, TrainParams
+from src.models.stateful_forward import stateful_forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
-
+from src.nn.archs.windowed_lstm import WindowedLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
-from src.nn.callbacks.metrics import MAECounter
 
 
 class StatePredictionModule:
     def __init__(self,
                  params: ModelParams,
-                 n_attr_in: int
+                 n_attr_in: int,
                  ):
         """
 
@@ -44,86 +43,6 @@ class StatePredictionModule:
 
         self.scaler: Optional[MinMaxScaler] = None
         self.target_col_indexes = None
-
-    def _forward_sequences(self,
-                           sequences: list[torch.Tensor],
-                           is_eval: bool = False,
-                           target_indexes: list[int] | None = None
-                           ) -> Tuple[float, float]:
-        """
-        Forward list of sequences through model.
-
-        :param sequences: list of sequences
-        :param is_eval: whether we are evaluating model instead of training
-        :return:
-        """
-        train_progress = tqdm(sequences, total=sum([len(s) - self.model_params.n_steps_predict for s in sequences]))
-
-        # Track overall loss
-        loss_sum = 0
-        mae_counter = MAECounter()
-
-        # Select proper mode
-        if is_eval:
-            self.model.eval()
-        else:
-            self.model.train()
-
-        # Forward all sequences
-        for _, seq in enumerate(sequences):
-            h0 = None
-            c0 = None
-
-            # Iterate over sequence_df
-            for step_i in range(len(seq) - self.model_params.n_steps_predict):
-
-                # Get input and output data
-                input_step: torch.Tensor = seq[step_i].clone()
-                output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + self.model_params.n_steps_predict].clone()
-
-                if target_indexes is not None:
-                    output_step = output_step[:, target_indexes]
-
-                input_step = input_step.expand((1, -1)).to(self.model_params.device)
-
-                if self.model_params.n_steps_predict == 1:
-                    output_step = output_step.expand((1, -1)).to(self.model_params.device)
-
-                if not is_eval:
-                    self.optimizer.zero_grad()
-
-                if is_eval:
-                    with torch.no_grad():
-                        outputs, (hn, cn) = self.model(input_step, h0, c0)
-                else:
-                    outputs, (hn, cn) = self.model(input_step, h0, c0)
-
-                outputs = outputs.view(self.model_params.n_steps_predict,
-                                       round(outputs.shape[1] / self.model_params.n_steps_predict))
-
-                # Calculate losses
-                loss = self.criterion(outputs, output_step)
-                last_loss = loss.item()
-                train_progress.set_postfix({"Loss": last_loss})
-                loss_sum += last_loss
-
-                mae_counter.publish(outputs, output_step)
-
-                # preserve internal LSTM states
-                h0, c0 = hn.detach(), cn.detach()
-
-                # Back-propagation
-                if not is_eval:
-                    loss.backward()
-                    self.optimizer.step()
-
-                train_progress.update(1)
-
-        # Return mean loss
-        mean_loss = loss_sum / train_progress.total
-        mean_mae_loss = mae_counter.retrieve()
-
-        return mean_loss, mean_mae_loss
 
     def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
               val_perc: float = 0.2) -> Tuple[float, float]:
@@ -156,12 +75,20 @@ class StatePredictionModule:
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # Forward test data
-            train_loss, mae_train_loss = self._forward_sequences(train_sequences, is_eval=False,
-                                                                 target_indexes=self.target_col_indexes)
+            train_loss, mae_train_loss = stateful_forward_sequences(train_sequences, is_eval=False,
+                                                                    model=self.model,
+                                                                    model_params=self.model_params,
+                                                                    optimizer=self.optimizer,
+                                                                    criterion=self.criterion,
+                                                                    target_indexes=self.target_col_indexes)
 
             # Forward val data
-            val_loss, mae_val_loss = self._forward_sequences(val_sequences, is_eval=True,
-                                                             target_indexes=self.target_col_indexes)
+            val_loss, mae_val_loss = stateful_forward_sequences(val_sequences, is_eval=True,
+                                                                model=self.model,
+                                                                model_params=self.model_params,
+                                                                optimizer=self.optimizer,
+                                                                criterion=self.criterion,
+                                                                target_indexes=self.target_col_indexes)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
-from src.models.state_prediction_module import StatePredictionModule
+from src.models.stateful_prediction_module import StatePredictionModule
 from src.session.helpers.model_payload import SessionPayload
 from src.session.helpers.test import test_model
 

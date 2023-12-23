@@ -15,6 +15,7 @@ from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.model_payload import SessionPayload
 from src.session.helpers.test import test_model
+from src.session.helpers.windowed_train import train_windowed_model
 from src.session.helpers.train import train_model
 from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_model_name
 
@@ -37,7 +38,7 @@ def _get_sequences(path: str = CSV_PATH, limit: int = None) -> tuple[list[pd.Dat
     # }
 
     rankings = {
-        c.RESPIRATION: ["WLASNY", "CPAP", "MAP1", "MAP2", "MAP3"]
+        c.RESPIRATION: ["MAP3", "MAP2", "MAP1", "CPAP", "WLASNY"]
     }
 
     preprocessor = Preprocessor(group_cols=[c.PATIENTID],
@@ -77,6 +78,7 @@ class ModelManager:
 
         self.sequences, self.preprocessor = _get_sequences()
 
+    # TODO: This is hardcoded
     def _split_sequences(self, limit: int = None):
         splitter = RegressionTrainTestSplitter()
         self.sequences_train, self.sequences_test = splitter.fit_split(
@@ -96,8 +98,8 @@ class ModelManager:
 
             time.sleep(1)
 
-            trained_model = train_model(payload=self.session_payload,
-                                        sequences=self.sequences_train)
+            trained_model = train_windowed_model(payload=self.session_payload,
+                                                 sequences=self.sequences_train)
 
             payload = SessionPayload(model=trained_model, model_params=self.session_payload.model_params,
                                      train_params=self.session_payload.train_params,
