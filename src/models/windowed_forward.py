@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import torch
+from tqdm import tqdm
 
 from src.config.dataclassess import ModelParams
 from src.nn.archs.windowed_lstm import WindowedLSTM
@@ -11,7 +12,9 @@ def windows_and_masks_generator(sequences,
                                 window_size: int = 10,
                                 batch_size: int = 16,
                                 y_columns: list = None,
-                                n_predictions: int = 1):
+                                n_predictions: int = 1,
+
+                                ):
     windows = []
     ys = []
     seq_lens = [s.shape[0] for s in sequences]
@@ -20,8 +23,8 @@ def windows_and_masks_generator(sequences,
         nonlocal windows, ys
 
         masks = [torch.cat([
-            torch.zeros(window_size - w.shape[0], w.shape[1]),
-            torch.ones(w.shape[0], w.shape[1])
+            torch.zeros(window_size - w.shape[0], w.shape[1], device=sequences[0].device),
+            torch.ones(w.shape[0], w.shape[1], device=sequences[0].device)
         ]) for w in windows]
 
         xs = [
@@ -37,7 +40,7 @@ def windows_and_masks_generator(sequences,
                 seq[win_index + 1:win_index + 1 + n_predictions, y_columns] for win_index in range(len(windows))
             ]
 
-        return tuple((xs, ys, masks))
+        return tuple((torch.stack(xs), torch.stack(ys), torch.stack(masks)))
 
     for seq, seq_len in zip(sequences, seq_lens):
         for i in range(seq_len - n_predictions):
@@ -73,52 +76,32 @@ def windowed_forward(
     loss_sum = 0
     mae_counter = MAECounter()
 
-    generator = windows_and_masks_generator(sequences[:2], window_size, n_predictions=3,
+    generator = windows_and_masks_generator(sequences, window_size, n_predictions=model_params.n_steps_predict,
                                             y_columns=sequences[0].shape[1] - 1)
 
+    pbar = tqdm(desc="Training...")
     for x, y, m in iter(generator):
-        pass
+        y_pred = model.forward(x, m)
 
-    pass
+        loss = criterion(y_pred, y)
+        last_loss = loss.item()
+        loss_sum += last_loss
 
-    # FORWARD
+        mae_counter.publish(y_pred, y)
 
-    # FORWARD END
-
-    """
-    if is_eval:
-        with torch.no_grad():
-            outputs, (hn, cn) = model(input_step, h0, c0)
-    else:
-        outputs, (hn, cn) = model(input_step, h0, c0)
-
-    outputs = outputs.view(model_params.n_steps_predict,
-                           round(outputs.shape[1] / model_params.n_steps_predict))
-
-    # Calculate losses
-    loss = criterion(outputs, output_step)
-    last_loss = loss.item()
-    train_progress.set_postfix({"Loss": last_loss})
-    loss_sum += last_loss
-
-    mae_counter.publish(outputs, output_step)
-
-    # preserve internal LSTM states
-    h0, c0 = hn.detach(), cn.detach()
-
-    # Back-propagation
-    if not is_eval:
         loss.backward()
         optimizer.step()
 
-    train_progress.update(1)
-    """
+        pbar.update(1)
+        pass
+
+    total = pbar.n
+    pbar.close()
+
+    pass
 
     # Return mean loss
-    mean_loss = loss_sum / ...  # train_progress.total
+    mean_loss = loss_sum / total
     mean_mae_loss = mae_counter.retrieve()
 
     return mean_loss, mean_mae_loss
-
-
-pass
