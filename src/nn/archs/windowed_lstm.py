@@ -16,7 +16,22 @@ class WindowedLSTM(nn.Module):
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=32, batch_first=True, num_layers=2, device=device)
         self.fccn = LazyFCCN(hidden_sizes=[128, 64, 64, 32], output_size=output_size, activation=F.tanh, device=device)
 
+        self.called = False
+
     def forward(self, x, mask):
+        if not self.called:
+            self.called = True
+
+            with torch.no_grad():
+                self.forward(x, mask)
+
+            def weights_init(m):
+                if isinstance(m, nn.Linear):
+                    nn.init.xavier_uniform_(m.weight)
+                    nn.init.zeros_(m.bias)
+
+            self.apply(weights_init)
+
         lstm_out, _ = self.lstm(x)
         lstm_out = lstm_out.reshape(lstm_out.shape[0], -1)
         lstm_out = F.tanh(lstm_out)
