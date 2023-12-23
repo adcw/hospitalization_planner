@@ -79,9 +79,21 @@ def windowed_forward(
     generator = windows_and_masks_generator(sequences, window_size, n_predictions=model_params.n_steps_predict,
                                             y_columns=sequences[0].shape[1] - 1)
 
+    # Select proper mode
+    if is_eval:
+        model.eval()
+    else:
+        model.train()
+
     pbar = tqdm(desc="Training...")
     for x, y, m in iter(generator):
-        y_pred = model.forward(x, m)
+
+        if is_eval:
+            with torch.no_grad():
+                y_pred = model.forward(x, m)
+        else:
+            optimizer.zero_grad()
+            y_pred = model.forward(x, m)
 
         loss = criterion(y_pred, y)
         last_loss = loss.item()
@@ -89,8 +101,9 @@ def windowed_forward(
 
         mae_counter.publish(y_pred, y)
 
-        loss.backward()
-        optimizer.step()
+        if not is_eval:
+            loss.backward()
+            optimizer.step()
 
         pbar.update(1)
         pass
