@@ -68,6 +68,8 @@ class ModelManager:
         self.models_dir = models_dir
         self.config_path = config_path
 
+        self.test_perc = test_perc
+
         if not os.path.exists(self.models_dir):
             os.mkdir(self.models_dir)
 
@@ -82,8 +84,8 @@ class ModelManager:
     def _split_sequences(self, limit: int = None):
         splitter = RegressionTrainTestSplitter()
         self.sequences_train, self.sequences_test = splitter.fit_split(
-            self.sequences[:limit], test_size=0.1,
-            n_clusters=7)
+            self.sequences[:limit], test_size=self.test_perc,
+            n_clusters=5)
 
     def start(self):
         mode = prompt_mode()
@@ -105,7 +107,7 @@ class ModelManager:
                                      train_params=self.session_payload.train_params,
                                      eval_params=self.session_payload.eval_params)
 
-            test_model(payload, sequences=self.sequences_test, limit=30)
+            test_model(payload, sequences=self.sequences_test, limit=None)
 
             model_name = prompt_model_name()
             if model_name:
