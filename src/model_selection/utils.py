@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -22,9 +23,11 @@ def reg_classification(
 ):
     n_cols = X[0].shape[1]
     real_index = (n_cols + strat_col_indx) % n_cols
-    colname = X[0].columns.values[real_index]
 
-    features = [get_features(s[colname]) for s in X]
+    if type(X[0]) == pd.DataFrame:
+        X = [x.values for x in X]
+
+    features = [get_features(s[:, 16]) for s in X]
     features = np.stack(features)
 
     scaler = StandardScaler()
