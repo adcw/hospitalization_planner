@@ -1,11 +1,25 @@
 from typing import Tuple
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
 from src.config.dataclassess import ModelParams
+from src.nn.archs.windowed_conv_lstm import WindowedConvLSTM
 from src.nn.archs.windowed_lstm import WindowedLSTM
 from src.nn.callbacks.metrics import MAECounter
+
+
+def pad_sequences(
+        sequences: list[torch.Tensor],
+        window_size: int
+):
+    return [torch.cat([
+        torch.zeros(window_size - len(seq),
+                    sequences[0].shape[1],
+                    device=sequences[0].device),
+        seq
+    ]) for seq in sequences]
 
 
 def windows_and_masks_generator(sequences,
@@ -27,18 +41,7 @@ def windows_and_masks_generator(sequences,
             torch.ones(w.shape[0], w.shape[1], device=sequences[0].device)
         ]) for w in windows]
 
-        xs = [
-            torch.cat([
-                torch.zeros(window_size - len(window),
-                            sequences[0].shape[1],
-                            device=sequences[0].device),
-                window
-            ]) for window in windows]
-
-        if y_columns is not None:
-            ys = [
-                seq[win_index + 1:win_index + 1 + n_predictions, y_columns] for win_index in range(len(windows))
-            ]
+        xs = pad_sequences(windows, window_size=window_size)
 
         return tuple((torch.stack(xs), torch.stack(ys), torch.stack(masks)))
 
@@ -51,17 +54,17 @@ def windows_and_masks_generator(sequences,
                 yield batch()
                 windows = []
                 ys = []
-        if len(windows) != 0:
-            yield batch()
-            windows = []
-            ys = []
+    if len(windows) != 0:
+        yield batch()
+        windows = []
+        ys = []
 
 
 def windowed_forward(
         sequences: list[torch.Tensor],
 
         # TODO: Fill typing
-        model: WindowedLSTM,
+        model: WindowedConvLSTM,
         model_params: ModelParams,
         optimizer,
         criterion,
@@ -76,7 +79,9 @@ def windowed_forward(
     loss_sum = 0
     mae_counter = MAECounter()
 
-    generator = windows_and_masks_generator(sequences, window_size, n_predictions=model_params.n_steps_predict,
+    generator = windows_and_masks_generator(sequences, window_size,
+                                            n_predictions=model_params.n_steps_predict,
+                                            batch_size=128,
                                             y_columns=sequences[0].shape[1] - 1)
 
     # Select proper mode
@@ -97,6 +102,7 @@ def windowed_forward(
 
         loss = criterion(y_pred, y)
         last_loss = loss.item()
+        pbar.set_postfix({"Loss": last_loss})
         loss_sum += last_loss
 
         mae_counter.publish(y_pred, y)
