@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
+from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 
 
@@ -17,9 +18,9 @@ def split_and_norm_sequences(sequences: list[np.ndarray], val_perc: float = 0.2)
     """
     scaler = MinMaxScaler()
 
-    split_point = round(len(sequences) * (1 - val_perc))
-    train_seq = sequences[:split_point]
-    val_seq = sequences[split_point:]
+    split = RegressionTrainTestSplitter()
+
+    train_seq, val_seq = split.fit_split(sequences, test_size=val_perc, n_clusters=5)
 
     train_cat = np.concatenate(train_seq)
     train_cat_norm = scaler.fit_transform(train_cat)
