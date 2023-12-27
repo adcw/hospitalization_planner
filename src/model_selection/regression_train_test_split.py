@@ -26,4 +26,10 @@ class RegressionTrainTestSplitter:
                                                                    test_size=test_size,
                                                                    random_state=random_state)
 
+        # TODO: Plot split
+        # train_features = self._features[self._train_indices]
+        #
+        #
+        # scatter3d(features=splits_list, colors=splits_classes)
+
         return [X[i] for i in self._train_indices], [X[i] for i in self._test_indices]
