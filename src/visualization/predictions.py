@@ -31,8 +31,10 @@ def plot_pred_comparison(plot_data: List[Tuple[np.array, np.array]]):
                     axs[i, j].plot(y_real, label=f'real')
                     axs[i, j].plot(y_pred, label=f'pred')
                     axs[i, j].legend()
+                    axs[i, j].set_ylim(-0.1, 1.1)
                 else:
                     axs[i, j].axis('off')
+                    axs[i, j].set_ylim(-0.1, 1.1)
 
     plt.tight_layout()
     plt.suptitle("Predictions")
@@ -74,6 +76,7 @@ def plot_sequences_with_predictions(
             ax.plot(range(pred_start, pred_end), pred_sequence, ".",
                     label=f'Prediction at Index {index}')
 
+        ax.set_ylim(-0.1, 1.1)
         ax.legend()
         ax.set_xlabel('Index')
         ax.set_ylabel('Value')
