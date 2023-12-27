@@ -13,8 +13,12 @@ class WindowedLSTM(nn.Module):
         super(WindowedLSTM, self).__init__()
         self.device = device
 
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=32, batch_first=True, num_layers=2, device=device)
-        self.fccn = LazyFCCN(hidden_sizes=[128, 64, 64, 32], output_size=output_size, activation=F.tanh, device=device)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=32, batch_first=True, num_layers=3, device=device,
+                            dropout=0.2)
+        self.fccn = LazyFCCN(hidden_sizes=[64, 32, 16, 8], output_size=output_size, activation=F.selu, device=device,
+                             dropout_rate=0.35)
+
+        self.output_size = output_size
 
         self.called = False
 
@@ -32,9 +36,12 @@ class WindowedLSTM(nn.Module):
 
             self.apply(weights_init)
 
+        self.lstm.flatten_parameters()
         lstm_out, _ = self.lstm(x)
+
+        # lstm_out = F.dropout(lstm_out, p=0.35)
         lstm_out = lstm_out.reshape(lstm_out.shape[0], -1)
-        lstm_out = F.tanh(lstm_out)
+        lstm_out = F.selu(lstm_out)
 
         output = self.fccn.forward(lstm_out)
         output = F.sigmoid(output)
