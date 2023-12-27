@@ -57,7 +57,7 @@ def test_model(
             y_pred = y_pred.reshape((y_pred.shape[1], -1))
 
             # Calculate losses
-            loss = np.mean((np.array(y_real_raw) - np.array(y_pred_raw)) ** 2)
+            loss = np.mean(abs(np.array(y_real_raw) - np.array(y_pred_raw)))
             loss_sum += loss
             loss_calc_count += 1
 
