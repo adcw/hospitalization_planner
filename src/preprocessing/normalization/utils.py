@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,12 @@ from src.model_selection.regression_train_test_split import RegressionTrainTestS
 from src.preprocessing.encoding.onehotencoder import OneHotEncoder
 
 
-def split_and_norm_sequences(sequences: list[np.ndarray], val_perc: float = 0.2):
+def split_and_norm_sequences(sequences: list[np.ndarray], val_perc: float = 0.2) \
+        -> Tuple[
+            List[np.ndarray],
+            Optional[List[np.ndarray]],
+            Tuple[MinMaxScaler, RegressionTrainTestSplitter]
+        ]:
     """
     Normalize train and validation data.
     Scaler is fit on training data and used both on training and validation data.
@@ -31,7 +36,7 @@ def split_and_norm_sequences(sequences: list[np.ndarray], val_perc: float = 0.2)
     else:
         val_seq_norm = []
 
-    return train_seq_norm, val_seq_norm, scaler
+    return train_seq_norm, val_seq_norm, (scaler, split)
 
 
 def transform_sequences(val_seq: Optional[List[np.ndarray]], scaler: MinMaxScaler):

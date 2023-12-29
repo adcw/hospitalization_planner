@@ -86,6 +86,7 @@ class ModelManager:
         self.sequences_train, self.sequences_test = splitter.fit_split(
             self.sequences[:limit], test_size=self.test_perc,
             n_clusters=5)
+        splitter.plot_split(title="Train and test split", axe_titles=['a', 'b', 'std'])
 
     def start(self):
         mode = prompt_mode()

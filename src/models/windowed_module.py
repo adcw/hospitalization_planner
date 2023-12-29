@@ -70,8 +70,10 @@ class WindowedModule:
                                    self.model_params.cols_predict] \
             if self.model_params.cols_predict is not None else None
 
-        train_sequences, val_sequences, self.scaler = dfs2tensors(sequences, val_perc=val_perc,
-                                                                  device=self.model_params.device)
+        train_sequences, val_sequences, (self.scaler, split) = dfs2tensors(sequences, val_perc=val_perc,
+                                                                           device=self.model_params.device)
+
+        split.plot_split(title="Train and validation data plots", axe_titles=['a', 'b', 'std'])
 
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")

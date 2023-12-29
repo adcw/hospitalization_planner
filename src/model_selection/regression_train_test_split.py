@@ -1,6 +1,9 @@
+from typing import Optional, List
+
 import numpy as np
 
 from src.model_selection.utils import reg_classification, stratify_classes
+from src.visualization.plot3d import scatter3d
 
 
 class RegressionTrainTestSplitter:
@@ -26,10 +29,19 @@ class RegressionTrainTestSplitter:
                                                                    test_size=test_size,
                                                                    random_state=random_state)
 
-        # TODO: Plot split
-        # train_features = self._features[self._train_indices]
-        #
-        #
-        # scatter3d(features=splits_list, colors=splits_classes)
-
         return [X[i] for i in self._train_indices], [X[i] for i in self._test_indices]
+
+    def plot_split(self,
+                   title: str = "Train and test split",
+                   axe_titles: Optional[List[str]] = None
+                   ):
+        axe_titles = axe_titles or ['a', 'b', 'std']
+
+        train_features = self._features[self._train_indices]
+        test_features = self._features[self._test_indices]
+
+        scatter3d(features=np.concatenate([train_features, test_features], axis=0),
+                  colors=np.array([0 for _ in train_features] + [1 for _ in test_features]),
+                  title=title,
+                  axe_titles=axe_titles
+                  )

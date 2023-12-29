@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from sklearn.preprocessing import MinMaxScaler
 
+from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.preprocessing.normalization.utils import split_and_norm_sequences
 
 
@@ -20,7 +21,12 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device) -> List[torch
 def dfs2tensors(dfs: List[pd.DataFrame],
                 val_perc: Optional[float] = 0.2,
                 device: torch.device = "cuda"
-                ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]], MinMaxScaler]:
+                ) \
+        -> Tuple[
+            List[torch.Tensor],
+            Optional[List[torch.Tensor]],
+            Tuple[MinMaxScaler, RegressionTrainTestSplitter]
+        ]:
     sequences = [s.values for s in dfs]
 
     train_sequences, val_sequences, scaler = split_and_norm_sequences(sequences, val_perc)

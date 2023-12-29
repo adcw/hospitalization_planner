@@ -11,7 +11,6 @@ from src.config.parsing import ModelParams, TrainParams
 from src.models.stateful_forward import stateful_forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
-from src.nn.archs.windowed_lstm import WindowedLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 
 
@@ -68,9 +67,11 @@ class StatePredictionModule:
                                    self.model_params.cols_predict] \
             if self.model_params.cols_predict is not None else None
 
-        train_sequences, val_sequences, scaler = dfs2tensors(sequences,
-                                                             val_perc=val_perc,
-                                                             device=self.model_params.device)
+        train_sequences, val_sequences, (scaler, split) = dfs2tensors(sequences,
+                                                                      val_perc=val_perc,
+                                                                      device=self.model_params.device)
+
+        split.plot_split(title="Train and validation sequences")
 
         # TODO: Refactor this part to separate functioun
         for epoch in range(params.epochs):

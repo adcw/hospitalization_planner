@@ -4,19 +4,23 @@ import numpy as np
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
+from typing import Optional, Tuple
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 
 def scatter3d(features: np.ndarray,
               title: str = "3D plot",
-              labels: Optional[Tuple[str, str, str]] = None,
-              colors: Optional[np.ndarray] = None,
-              custom_labels: Optional[np.ndarray] = None
+              axe_titles: Optional[Tuple[str, str, str]] = None,
+              colors: Optional[np.ndarray] = None
               ):
     fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'scatter3d'}]])
 
-    if labels is None:
+    if axe_titles is None:
         xaxis_title, yaxis_title, zaxis_title = 'X', 'Y', 'Z'
     else:
-        xaxis_title, yaxis_title, zaxis_title = labels
+        xaxis_title, yaxis_title, zaxis_title = axe_titles
 
     scatter = go.Scatter3d(
         x=features[:, 0],
@@ -25,17 +29,15 @@ def scatter3d(features: np.ndarray,
         mode='markers',
         marker=dict(
             size=8,
-            color=colors,  # Użyj kolorów z parametru colors
+            color=colors,
             opacity=0.8
-        ),
-        text=custom_labels  # Ustaw własne etykiety
+        )
     )
 
     fig.add_trace(scatter)
 
     fig.update_layout(scene=dict(aspectmode="cube"))
 
-    # Dodaj opcję obrotu
     fig.update_layout(
         updatemenus=[
             dict(
