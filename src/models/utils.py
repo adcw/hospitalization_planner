@@ -17,16 +17,11 @@ def seq2tensors(sequences: list[np.ndarray], device: torch.device) -> List[torch
     return tensors
 
 
-def dfs2tensors(df: List[pd.DataFrame],
-                limit: Optional[int] = None,
+def dfs2tensors(dfs: List[pd.DataFrame],
                 val_perc: Optional[float] = 0.2,
                 device: torch.device = "cuda"
                 ) -> Tuple[List[torch.Tensor], Optional[List[torch.Tensor]], MinMaxScaler]:
-    if limit:
-        # TODO: Choose random sequences instead of trimming
-        df = df[:limit].copy()
-
-    sequences = [s.values for s in df]
+    sequences = [s.values for s in dfs]
 
     train_sequences, val_sequences, scaler = split_and_norm_sequences(sequences, val_perc)
     train_sequences = seq2tensors(train_sequences, device)

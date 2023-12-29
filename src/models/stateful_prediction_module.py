@@ -68,7 +68,8 @@ class StatePredictionModule:
                                    self.model_params.cols_predict] \
             if self.model_params.cols_predict is not None else None
 
-        train_sequences, val_sequences, scaler = dfs2tensors(sequences, val_perc=val_perc, limit=params.sequence_limit,
+        train_sequences, val_sequences, scaler = dfs2tensors(sequences,
+                                                             val_perc=val_perc,
                                                              device=self.model_params.device)
 
         # TODO: Refactor this part to separate functioun

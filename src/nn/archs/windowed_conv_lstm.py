@@ -1,13 +1,10 @@
 from typing import Optional, List
 
-import torch
 from torch import nn
 from torch.functional import F
 
 from src.nn.archs.LazyMLC import MLConv, ConvLayerData as CLD
 from src.nn.archs.LazyMLP import LazyMLP
-from src.nn.archs.lazy_fccn import LazyFCCN
-from src.nn.layers.attention import SelfAttentionLayer
 
 
 class WindowedConvLSTM(nn.Module):
@@ -57,15 +54,14 @@ class WindowedConvLSTM(nn.Module):
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
         ]
 
-        # self.conv = nn.Conv1d(in_channels=n_attr, out_channels=self.conv_channels, kernel_size=self.conv_kernel_size,
-        #                       stride=self.conv_stride, padding='valid', device=self.device)
-
         self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=0)
 
         self.lstm = nn.LSTM(input_size=self.cldata[-1].channels, hidden_size=self.lstm_hidden_size,
                             num_layers=self.lstm_layers,
                             batch_first=True,
                             device=self.device, dropout=self.lstm_dropout)
+
+        self.post_lstm_bnm = nn.LazyBatchNorm1d()
 
         self.mlp = LazyMLP(hidden_sizes=self.mlp_arch,
                            output_size=self.output_size,
@@ -74,8 +70,8 @@ class WindowedConvLSTM(nn.Module):
                            )
 
     def forward(self, x, m):
+        # pre_norm
         x_perm = x.permute(0, 2, 1)
-        # x_conv = self.conv(x_perm)
         x_conv = self.mlconv(x_perm)
         x_conv = F.selu(x_conv)
         x_conv = x_conv.permute(0, 2, 1)
@@ -83,9 +79,9 @@ class WindowedConvLSTM(nn.Module):
         self.lstm.flatten_parameters()
         x_lstm, _ = self.lstm(x_conv)
         x_lstm = x_lstm[:, -1, :]
+        x_lstm = self.post_lstm_bnm(x_lstm)
         x_lstm = F.selu(x_lstm)
 
-        # x_conv = x_conv.reshape(x_conv.size(0), -1)
         x_mlp = self.mlp(x_lstm)
         output = F.sigmoid(x_mlp)
 

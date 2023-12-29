@@ -11,7 +11,6 @@ from src.config.dataclassess import ModelParams, TrainParams
 from src.models.utils import dfs2tensors
 from src.models.windowed_forward import windowed_forward, pad_sequences
 from src.nn.archs.windowed_conv_lstm import WindowedConvLSTM
-from src.nn.archs.windowed_lstm import WindowedLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 
 
@@ -72,7 +71,6 @@ class WindowedModule:
             if self.model_params.cols_predict is not None else None
 
         train_sequences, val_sequences, self.scaler = dfs2tensors(sequences, val_perc=val_perc,
-                                                                  limit=params.sequence_limit,
                                                                   device=self.model_params.device)
 
         for epoch in range(params.epochs):
