@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 from src.models.step.step_model import StepModel
-from src.session.helpers.model_payload import SessionPayload
+from src.session.helpers.session_payload import SessionPayload
 from src.session.helpers.test import test_model
 
 

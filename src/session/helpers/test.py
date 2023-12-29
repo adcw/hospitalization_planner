@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.session.helpers.model_payload import SessionPayload
+from src.session.helpers.session_payload import SessionPayload
 from src.visualization.predictions import PredictionData, plot_sequences_with_predictions
 
 

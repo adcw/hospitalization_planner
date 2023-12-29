@@ -13,9 +13,8 @@ from src.config.parsing import parse_config
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
-from src.session.helpers.model_payload import SessionPayload
+from src.session.helpers.session_payload import SessionPayload
 from src.session.helpers.test import test_model
-from src.session.helpers.windowed_train import train_windowed_model
 from src.session.helpers.train import train_model
 from src.session.utils.prompts import prompt_mode, prompt_model_file, prompt_model_name
 
@@ -101,8 +100,8 @@ class ModelManager:
 
             time.sleep(1)
 
-            trained_model = train_windowed_model(payload=self.session_payload,
-                                                 sequences=self.sequences_train)
+            trained_model = train_model(payload=self.session_payload,
+                                        sequences=self.sequences_train)
 
             payload = SessionPayload(model=trained_model, model_params=self.session_payload.model_params,
                                      train_params=self.session_payload.train_params,
