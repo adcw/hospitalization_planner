@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
-from src.models.stateful_prediction_module import StatePredictionModule
+from src.models.step.step_model import StepModel
 from src.session.helpers.model_payload import SessionPayload
 from src.session.helpers.test import test_model
 
@@ -31,7 +31,7 @@ def eval_model(
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
 
-        model = StatePredictionModule(payload.model_params, n_attr_in=sequences[0].shape[1])
+        model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]

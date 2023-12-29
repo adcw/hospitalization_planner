@@ -3,8 +3,8 @@ from typing import Optional, List
 from torch import nn
 from torch.functional import F
 
-from src.nn.archs.LazyMLC import MLConv, ConvLayerData as CLD
-from src.nn.archs.LazyMLP import LazyMLP
+from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
+from src.nn.archs.lazy_mlp import LazyMLP
 
 
 class WindowedConvLSTM(nn.Module):

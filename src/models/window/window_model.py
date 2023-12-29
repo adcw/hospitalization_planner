@@ -9,12 +9,12 @@ from torch import nn, optim
 
 from src.config.dataclassess import ModelParams, TrainParams
 from src.models.utils import dfs2tensors
-from src.models.windowed_forward import windowed_forward, pad_sequences
-from src.nn.archs.windowed_conv_lstm import WindowedConvLSTM
+from src.models.window.forward import forward_sequences, pad_sequences
+from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 
 
-class WindowedModule:
+class WindowModel:
     def __init__(self,
                  params: ModelParams,
                  n_attr_in: int,
@@ -78,22 +78,22 @@ class WindowedModule:
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
-            train_loss, mae_train_loss = windowed_forward(train_sequences, is_eval=False,
-                                                          model=self.model,
-                                                          model_params=self.model_params,
-                                                          optimizer=self.optimizer,
-                                                          criterion=self.criterion,
-                                                          target_indexes=self.target_col_indexes,
-                                                          window_size=self.window_size
-                                                          )
+            train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
+                                                           model=self.model,
+                                                           model_params=self.model_params,
+                                                           optimizer=self.optimizer,
+                                                           criterion=self.criterion,
+                                                           target_indexes=self.target_col_indexes,
+                                                           window_size=self.window_size
+                                                           )
 
-            val_loss, mae_val_loss = windowed_forward(val_sequences, is_eval=True,
-                                                      model=self.model,
-                                                      model_params=self.model_params,
-                                                      optimizer=self.optimizer,
-                                                      criterion=self.criterion,
-                                                      target_indexes=self.target_col_indexes,
-                                                      window_size=self.window_size)
+            val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
+                                                       model=self.model,
+                                                       model_params=self.model_params,
+                                                       optimizer=self.optimizer,
+                                                       criterion=self.criterion,
+                                                       target_indexes=self.target_col_indexes,
+                                                       window_size=self.window_size)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)

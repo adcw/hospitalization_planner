@@ -1,12 +1,10 @@
 from typing import Tuple
 
-import numpy as np
 import torch
 from tqdm import tqdm
 
 from src.config.dataclassess import ModelParams
-from src.nn.archs.windowed_conv_lstm import WindowedConvLSTM
-from src.nn.archs.windowed_lstm import WindowedLSTM
+from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.metrics import MAECounter
 
 
@@ -60,7 +58,7 @@ def windows_and_masks_generator(sequences,
         ys = []
 
 
-def windowed_forward(
+def forward_sequences(
         sequences: list[torch.Tensor],
 
         # TODO: Fill typing

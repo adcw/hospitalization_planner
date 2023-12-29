@@ -8,13 +8,13 @@ from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
 from src.config.parsing import ModelParams, TrainParams
-from src.models.stateful_forward import stateful_forward_sequences
+from src.models.step.forward import forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 
 
-class StatePredictionModule:
+class StepModel:
     def __init__(self,
                  params: ModelParams,
                  n_attr_in: int,
@@ -78,20 +78,20 @@ class StatePredictionModule:
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # Forward test data
-            train_loss, mae_train_loss = stateful_forward_sequences(train_sequences, is_eval=False,
-                                                                    model=self.model,
-                                                                    model_params=self.model_params,
-                                                                    optimizer=self.optimizer,
-                                                                    criterion=self.criterion,
-                                                                    target_indexes=self.target_col_indexes)
+            train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
+                                                           model=self.model,
+                                                           model_params=self.model_params,
+                                                           optimizer=self.optimizer,
+                                                           criterion=self.criterion,
+                                                           target_indexes=self.target_col_indexes)
 
             # Forward val data
-            val_loss, mae_val_loss = stateful_forward_sequences(val_sequences, is_eval=True,
-                                                                model=self.model,
-                                                                model_params=self.model_params,
-                                                                optimizer=self.optimizer,
-                                                                criterion=self.criterion,
-                                                                target_indexes=self.target_col_indexes)
+            val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
+                                                       model=self.model,
+                                                       model_params=self.model_params,
+                                                       optimizer=self.optimizer,
+                                                       criterion=self.criterion,
+                                                       target_indexes=self.target_col_indexes)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)

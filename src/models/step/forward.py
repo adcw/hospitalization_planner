@@ -7,7 +7,7 @@ from src.config.dataclassess import ModelParams
 from src.nn.callbacks.metrics import MAECounter
 
 
-def stateful_forward_sequences(
+def forward_sequences(
         sequences: list[torch.Tensor],
 
         # TODO: Fill typing
