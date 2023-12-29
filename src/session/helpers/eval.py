@@ -5,9 +5,12 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
+from src.model_selection.regression_strat_kfold import RegressionStratKFold
 from src.models.step.step_model import StepModel
+from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload
 from src.session.helpers.test import test_model
+from src.session.helpers.train import train_model
 
 
 def eval_model(
@@ -22,7 +25,7 @@ def eval_model(
 
     sequences = sequences[:payload.eval_params.sequence_limit]
 
-    kf = KFold(n_splits=eval_params.n_splits, shuffle=True)
+    kf = RegressionStratKFold()
 
     train_losses = []
     val_losses = []
@@ -31,7 +34,7 @@ def eval_model(
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
 
-        model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        model = WindowModel(payload.model_params, n_attr_in=sequences[0].shape[1])
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]
