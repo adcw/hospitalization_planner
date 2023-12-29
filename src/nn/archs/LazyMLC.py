@@ -29,9 +29,13 @@ class MLConv(nn.Module):
                           kernel_size=conv_data.kernel_size,
                           stride=conv_data.stride,
                           padding='valid'))
+
             layers.append(nn.BatchNorm1d(num_features=conv_data.channels))
             layers.append(conv_data.activation())
-            # layers.append(nn.Dropout(dropout_rate))
+
+            if dropout_rate != 0:
+                layers.append(nn.Dropout(dropout_rate))
+
             in_size = conv_data.channels
 
         self.conv_layers = nn.Sequential(*layers)
