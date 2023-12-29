@@ -11,7 +11,7 @@ CSV_PATH = '../data/input.csv'
 
 
 def test_kfold(sequences, strat_col_indx):
-    kfold = RegressionStratKFold(n_clusters=7, n_splits=5, strat_col_indx=strat_col_indx)
+    kfold = RegressionStratKFold(n_clusters=7, n_splits=5, strat_col_index=strat_col_indx)
     splits = kfold.split(sequences)
 
     splits_list = []

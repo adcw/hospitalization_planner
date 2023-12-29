@@ -27,7 +27,7 @@ def reg_classification(
     if type(X[0]) == pd.DataFrame:
         X = [x.values for x in X]
 
-    features = [get_features(s[:, 16]) for s in X]
+    features = [get_features(s[:, real_index]) for s in X]
     features = np.stack(features)
 
     scaler = StandardScaler()
@@ -63,5 +63,5 @@ if __name__ == '__main__':
     _X = [10, 20, 30, 40, 50, 60, 70, 80]
     _y = [0, 0, 1, 1, 1, 1, 2, 2]
 
-    train_indices, test_indices = stratify_classes(_y, test_size=0.5)
+    _train_indices, _test_indices = stratify_classes(_y, test_size=0.5)
     pass
