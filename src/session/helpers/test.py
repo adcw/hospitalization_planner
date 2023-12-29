@@ -28,6 +28,7 @@ def test_model(
         target_col = seq[model_payload.model_params.cols_predict]
         diff = np.diff(target_col, axis=0)
         points, _ = np.where(diff != 0)
+        points += 1
 
         # If there is more points than max allowed, get random points of max count allowed.
         if max_per_sequence is not None and len(points) > max_per_sequence:
