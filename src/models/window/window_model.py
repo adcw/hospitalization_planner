@@ -80,7 +80,7 @@ class WindowModel:
         train_sequences, val_sequences, (self.scaler, split) = dfs2tensors(sequences, val_perc=val_perc,
                                                                            device=self.model_params.device)
 
-        split.plot_split(title="Train and validation data plots", axe_titles=['a', 'b', 'std'])
+        # split.plot_split(title="Train and validation data plots", axe_titles=['a', 'b', 'std'])
 
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")

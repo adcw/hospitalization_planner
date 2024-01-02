@@ -71,7 +71,7 @@ class StepModel:
                                                                       val_perc=val_perc,
                                                                       device=self.model_params.device)
 
-        split.plot_split(title="Train and validation sequences")
+        # split.plot_split(title="Train and validation sequences")
 
         # TODO: Refactor this part to separate functioun
         for epoch in range(params.epochs):

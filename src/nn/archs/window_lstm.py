@@ -35,6 +35,7 @@ class WindowedConvLSTM(nn.Module):
         self.device = device
 
         self.output_size = output_size
+        self.n_attr = n_attr
 
         self.conv_channels = conv_channels
         self.conv_kernel_size = conv_kernel_size
