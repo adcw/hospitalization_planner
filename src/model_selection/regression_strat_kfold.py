@@ -23,7 +23,7 @@ class RegressionStratKFold(StratifiedKFold, metaclass=ABCMeta):
         clusters, features = reg_classification(X, strat_col_indx=self.strat_col_indx, n_clusters=self.n_clusters)
         self._features = features
 
-        scatter3d(features, axe_titles=('a', 'b', 'std'), colors=clusters)
+        # scatter3d(features, axe_titles=('a', 'b', 'std'), colors=clusters)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
