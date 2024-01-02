@@ -46,9 +46,9 @@ def eval_model(
         model_payload.model = model
 
         # Perform test
-        test_loss = test_model(model_payload, val_sequences, limit=None, plot=False, max_per_sequence=None)
+        test_loss = test_model(model_payload, val_sequences, plot=False)
 
-        test_model(model_payload, sequences=val_sequences, limit=30)
+        test_model(model_payload, sequences=val_sequences)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)

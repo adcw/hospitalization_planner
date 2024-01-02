@@ -11,10 +11,10 @@ from src.visualization.predictions import PredictionData, plot_sequences_with_pr
 def test_model(
         model_payload: SessionPayload,
         sequences: list[pd.DataFrame],
-        limit: Optional[int] = 30,
+        limit: Optional[int] = None,
         offset: int = 0,
 
-        max_per_sequence: Optional[int] = 10,
+        max_per_sequence: Optional[int] = 5,
         plot: bool = True
 ):
     cnt = 0

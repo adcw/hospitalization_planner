@@ -107,7 +107,7 @@ class ModelManager:
                                      train_params=self.session_payload.train_params,
                                      eval_params=self.session_payload.eval_params)
 
-            test_model(payload, sequences=self.sequences_test, limit=None)
+            test_model(payload, sequences=self.sequences_test)
 
             model_name = prompt_model_name()
             if model_name:
@@ -133,7 +133,7 @@ class ModelManager:
 
                 time.sleep(1)
 
-                test_model(model_payload, sequences=self.sequences_test, limit=30)
+                test_model(model_payload, sequences=self.sequences_test)
 
         elif mode == "eval":
             self._split_sequences(self.session_payload.eval_params.sequence_limit)
