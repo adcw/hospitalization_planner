@@ -13,12 +13,14 @@ from src.models.window.forward import forward_sequences, pad_sequences
 from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 
+from torch.functional import F
+
 
 class WindowModel:
     def __init__(self,
                  params: ModelParams,
                  n_attr_in: int,
-                 window_size: int = 10,
+                 window_size: int = 9,
                  ):
         self.n_attr_in = n_attr_in
         self.n_attr_out = len(params.cols_predict) if params.cols_predict is not None else n_attr_in
@@ -33,16 +35,20 @@ class WindowModel:
             device=self.model_params.device,
             n_attr=self.n_attr_in,
 
-            lstm_hidden_size=32,
-            lstm_layers=2,
-            lstm_dropout=0.2,
-
+            # conv
             conv_kernel_size=5,
             conv_stride=1,
             conv_channels=32,
 
-            mlp_arch=[128, 64, 16],
-            mlp_dropout=0.2
+            # LSTM
+            lstm_hidden_size=64,
+            lstm_layers=2,
+            lstm_dropout=0.2,
+
+            # MLP
+            mlp_arch=[126, 64, 32, 16],
+            mlp_dropout=0.2,
+            mlp_activation=F.selu
         )
 
         self.model = self.model.to(self.model_params.device)
@@ -59,7 +65,8 @@ class WindowModel:
               val_perc: float = 0.2) -> Tuple[float, float]:
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.0001, weight_decay=3e-4)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
+        # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001, weight_decay=3e-4, momentum=0.9)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
