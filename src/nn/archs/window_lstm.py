@@ -3,6 +3,7 @@ from typing import Optional, List
 from torch import nn
 from torch.functional import F
 
+from src.nn.archs.lazy_fccn import LazyFCCN
 from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 from src.nn.archs.lazy_mlp import LazyMLP
 
@@ -48,10 +49,10 @@ class WindowedConvLSTM(nn.Module):
         self.mlp_activation = mlp_activation
 
         self.cldata = conv_layers_data or [
-            CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            CLD(channels=32, kernel_size=3, activation=nn.Tanh),
+            CLD(channels=32, kernel_size=3, activation=nn.Tanh),
+            # CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            # CLD(channels=32, kernel_size=3, activation=nn.SELU),
         ]
 
         self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=0)
@@ -63,26 +64,36 @@ class WindowedConvLSTM(nn.Module):
 
         self.post_lstm_bnm = nn.LazyBatchNorm1d()
 
-        self.mlp = LazyMLP(hidden_sizes=self.mlp_arch,
-                           output_size=self.output_size,
-                           dropout_rate=self.mpl_dropout,
-                           activation=self.mlp_activation
-                           )
+        # self.mlp = LazyMLP(hidden_sizes=self.mlp_arch,
+        #                    output_size=self.output_size,
+        #                    dropout_rate=self.mpl_dropout,
+        #                    activation=self.mlp_activation
+        #                    )
+
+        self.fccn = LazyFCCN(
+            hidden_sizes=self.mlp_arch,
+            output_size=self.output_size,
+            dropout_rate=self.mpl_dropout,
+            activation=self.mlp_activation
+        )
 
     def forward(self, x, m):
         # pre_norm
         x_perm = x.permute(0, 2, 1)
         x_conv = self.mlconv(x_perm)
-        x_conv = F.selu(x_conv)
+        # x_conv = F.selu(x_conv)
         x_conv = x_conv.permute(0, 2, 1)
 
         self.lstm.flatten_parameters()
         x_lstm, _ = self.lstm(x_conv)
         x_lstm = x_lstm[:, -1, :]
         x_lstm = self.post_lstm_bnm(x_lstm)
-        x_lstm = F.selu(x_lstm)
+        x_lstm = F.tanh(x_lstm)
 
-        x_mlp = self.mlp(x_lstm)
-        output = F.sigmoid(x_mlp)
+        # x_mlp = self.mlp(x_lstm)
+        # output = F.sigmoid(x_mlp)
+
+        x_fccn = self.fccn(x_lstm)
+        output = F.sigmoid(x_fccn)
 
         return output
