@@ -53,8 +53,8 @@ def test_train_test_split(sequences, strat_col_indx):
 
     entries = np.stack(entries)
 
-    scatter3d(features=features, colors=splitter._clusters)
-    scatter3d(features=entries, colors=np.array(classes))
+    scatter3d(features=features, colors=splitter._clusters, axe_titles=('a', 'b', 'std'))
+    scatter3d(features=entries, colors=np.array(classes), axe_titles=('a', 'b', 'std'))
 
     pass
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     _sequences, _ = _get_sequences(CSV_PATH)
     _strat_col_indx = -1
 
-    # test_kfold(_sequences, _strat_col_indx)
-    test_train_test_split(_sequences, _strat_col_indx)
+    test_kfold(_sequences, _strat_col_indx)
+    # test_train_test_split(_sequences, _strat_col_indx)
 
     pass
