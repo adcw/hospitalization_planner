@@ -30,8 +30,9 @@ class MLConv(nn.Module):
                           stride=conv_data.stride,
                           padding='valid'))
 
-            layers.append(nn.BatchNorm1d(num_features=conv_data.channels))
-            layers.append(conv_data.activation())
+            # layers.append(nn.BatchNorm1d(num_features=conv_data.channels))
+            if conv_data.activation is not None:
+                layers.append(conv_data.activation())
 
             if dropout_rate != 0:
                 layers.append(nn.Dropout(dropout_rate))
