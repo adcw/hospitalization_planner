@@ -1,11 +1,46 @@
 from typing import Optional, List
 
+import torch
 from torch import nn
 from torch.functional import F
 
 from src.nn.archs.lazy_fccn import LazyFCCN
 from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 from src.nn.archs.lazy_mlp import LazyMLP
+
+
+def masked_min(t: torch.Tensor,
+               m: Optional[torch.Tensor],
+               dim: int = -1
+               ):
+    if m is not None:
+        masked = t.clone()
+        masked[m.bool()] = torch.inf
+        t = masked
+
+    result, _ = torch.min(t, dim=dim)
+    return result
+
+
+def masked_max(t: torch.Tensor,
+               m: Optional[torch.Tensor],
+               dim: int = -1
+               ):
+    if m is not None:
+        masked = t.clone()
+        masked[m.bool()] = -torch.inf
+        t = masked
+
+    result, _ = torch.max(t, dim=dim)
+    return result
+
+
+def masked_range(t: torch.Tensor,
+                 m: torch.Tensor = None,
+                 dim: int = -1):
+    x_max = masked_max(t, m, dim=dim)
+    x_min = masked_min(t, m, dim=dim)
+    return abs(x_max - x_min)
 
 
 class WindowedConvLSTM(nn.Module):
@@ -46,12 +81,12 @@ class WindowedConvLSTM(nn.Module):
         self.lstm_dropout = lstm_dropout
 
         self.mlp_arch = mlp_arch or [128, 64, 16]
-        self.mpl_dropout = mlp_dropout
+        self.mlp_dropout = mlp_dropout
         self.mlp_activation = mlp_activation
 
         self.cldata = conv_layers_data or [
-            CLD(channels=32, kernel_size=3, activation=nn.Tanh),
-            CLD(channels=32, kernel_size=3, activation=nn.Tanh),
+            CLD(channels=32, kernel_size=3, activation=None),
+            CLD(channels=32, kernel_size=3, activation=None),
             # CLD(channels=32, kernel_size=3, activation=nn.SELU),
             # CLD(channels=32, kernel_size=3, activation=nn.SELU),
         ]
@@ -63,7 +98,7 @@ class WindowedConvLSTM(nn.Module):
                             batch_first=True,
                             device=self.device, dropout=self.lstm_dropout)
 
-        self.post_lstm_bnm = nn.LazyBatchNorm1d()
+        # self.post_lstm_bnm = nn.LazyBatchNorm1d()
 
         # self.mlp = LazyMLP(hidden_sizes=self.mlp_arch,
         #                    output_size=self.output_size,
@@ -71,30 +106,38 @@ class WindowedConvLSTM(nn.Module):
         #                    activation=self.mlp_activation
         #                    )
 
-        self.fccn = LazyFCCN(
+        self.mlp = LazyFCCN(
             hidden_sizes=self.mlp_arch,
             output_size=self.output_size,
-            dropout_rate=self.mpl_dropout,
+            dropout_rate=self.mlp_dropout,
             activation=self.mlp_activation
         )
 
     def forward(self, x, m):
-        # pre_norm
+        # x.shape = (batch, seq, feat)
+
+        # (batch, feat)
+        # x_range = masked_range(x, m, dim=1)
+
+        # (batch, feat, seq)
         x_perm = x.permute(0, 2, 1)
         x_conv = self.mlconv(x_perm)
         # x_conv = F.selu(x_conv)
         x_conv = x_conv.permute(0, 2, 1)
 
         self.lstm.flatten_parameters()
+        # (batch, seq, feat)
         x_lstm, _ = self.lstm(x_conv)
+
+        # (batch, feat)
         x_lstm = x_lstm[:, -1, :]
-        x_lstm = self.post_lstm_bnm(x_lstm)
+        # x_lstm = self.post_lstm_bnm(x_lstm)
         x_lstm = F.tanh(x_lstm)
 
-        # x_mlp = self.mlp(x_lstm)
-        # output = F.sigmoid(x_mlp)
+        # fccn_in = torch.cat([x_lstm, x_range[:, -1:]], dim=1)
+        mlp_in = x_lstm
 
-        x_fccn = self.fccn(x_lstm)
-        output = F.sigmoid(x_fccn)
+        x_mlp = self.mlp(mlp_in)
+        output = F.sigmoid(x_mlp)
 
         return output

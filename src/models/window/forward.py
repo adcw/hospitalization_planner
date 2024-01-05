@@ -35,8 +35,8 @@ def windows_and_masks_generator(sequences,
         nonlocal windows, ys
 
         masks = [torch.cat([
-            torch.zeros(window_size - w.shape[0], w.shape[1], device=sequences[0].device),
-            torch.ones(w.shape[0], w.shape[1], device=sequences[0].device)
+            torch.ones(window_size - w.shape[0], w.shape[1], device=sequences[0].device, dtype=torch.bool),
+            torch.zeros(w.shape[0], w.shape[1], device=sequences[0].device, dtype=torch.bool)
         ]) for w in windows]
 
         xs = pad_sequences(windows, window_size=window_size)
