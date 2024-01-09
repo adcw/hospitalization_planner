@@ -35,19 +35,14 @@ class WindowModel:
             device=self.model_params.device,
             n_attr=self.n_attr_in,
 
-            # conv
-            conv_kernel_size=5,
-            conv_stride=1,
-            conv_channels=32,
-
             # LSTM
-            lstm_hidden_size=64,
+            lstm_hidden_size=128,
             lstm_layers=2,
-            lstm_dropout=0.2,
+            lstm_dropout=0.5,
 
             # MLP
-            mlp_arch=[126, 64, 32, 16],
-            mlp_dropout=0.2,
+            mlp_arch=[128, 128, 64, 16],
+            mlp_dropout=0.5,
             mlp_activation=F.selu
         )
 
