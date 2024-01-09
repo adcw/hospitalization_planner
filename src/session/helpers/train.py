@@ -1,5 +1,6 @@
 import pandas as pd
 
+from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload
 

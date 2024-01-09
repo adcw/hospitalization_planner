@@ -79,7 +79,7 @@ def forward_sequences(
 
     generator = windows_and_masks_generator(sequences, window_size,
                                             n_predictions=model_params.n_steps_predict,
-                                            batch_size=128,
+                                            batch_size=64,
                                             y_columns=sequences[0].shape[1] - 1)
 
     # Select proper mode

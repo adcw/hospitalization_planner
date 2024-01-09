@@ -49,9 +49,6 @@ class WindowedConvLSTM(nn.Module):
                  output_size: int,
 
                  # conv
-                 conv_channels: int = 32,
-                 conv_kernel_size: int = 5,
-                 conv_stride: int = 1,
                  conv_layers_data: Optional[List[CLD]] = None,
 
                  # LSTM
@@ -72,10 +69,6 @@ class WindowedConvLSTM(nn.Module):
         self.output_size = output_size
         self.n_attr = n_attr
 
-        self.conv_channels = conv_channels
-        self.conv_kernel_size = conv_kernel_size
-        self.conv_stride = conv_stride
-
         self.lstm_hidden_size = lstm_hidden_size
         self.lstm_layers = lstm_layers
         self.lstm_dropout = lstm_dropout
@@ -85,15 +78,17 @@ class WindowedConvLSTM(nn.Module):
         self.mlp_activation = mlp_activation
 
         self.cldata = conv_layers_data or [
-            CLD(channels=32, kernel_size=3, activation=None),
-            CLD(channels=32, kernel_size=3, activation=None),
-            # CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            # CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            # CLD(channels=48, kernel_size=3, activation=nn.Tanh),
+            # CLD(channels=32, kernel_size=3, activation=nn.Tanh),
         ]
 
         self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=0)
 
-        self.lstm = nn.LSTM(input_size=self.cldata[-1].channels, hidden_size=self.lstm_hidden_size,
+        self.lstm = nn.LSTM(input_size=self.cldata[-1].channels,
+                            hidden_size=self.lstm_hidden_size,
                             num_layers=self.lstm_layers,
                             batch_first=True,
                             device=self.device, dropout=self.lstm_dropout)

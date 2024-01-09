@@ -35,6 +35,7 @@ def eval_model(
         print(f"Training on split number {split_i + 1}")
 
         model = WindowModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        # model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]
@@ -46,9 +47,7 @@ def eval_model(
         model_payload.model = model
 
         # Perform test
-        test_loss = test_model(model_payload, val_sequences, plot=False)
-
-        test_model(model_payload, sequences=val_sequences)
+        test_loss = test_model(model_payload, val_sequences, plot=True)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
