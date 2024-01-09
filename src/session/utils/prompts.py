@@ -18,12 +18,14 @@ def prompt_mode() -> Literal["train", "test", "validate"]:
     return answers[prompt_name]
 
 
-def prompt_model_file(models_dir: str):
+def choose_model_name(models_dir: str):
     prompt_name = 'file_choice'
     filenames = os.listdir(models_dir)
 
+    filenames = [f for f in filenames if f.split("_")[0] == "train"]
+
     if len(filenames) == 0:
-        print(f"There are no models in {models_dir}. Please place them or train a nwe one.")
+        print(f"There are no models in {models_dir}. Please train a model first.")
         return None
 
     questions = [
@@ -38,16 +40,6 @@ def prompt_model_file(models_dir: str):
 
 
 def prompt_model_name():
-    questions = [
-        inquirer.Confirm('save_model', message="Save current model?"),
-    ]
-
-    answers = inquirer.prompt(questions)
-
-    if answers['save_model']:
-        text_question = inquirer.Text('model_name', "Enter model name")
-        answers.update(inquirer.prompt([text_question]))
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M")
-        return f"{answers['model_name']}_{timestamp}.pkl"
-    else:
-        return None
+    text_question = inquirer.Text('model_name', "Enter model name")
+    answers = inquirer.prompt([text_question])
+    return f"{answers['model_name']}"

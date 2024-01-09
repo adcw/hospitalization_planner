@@ -83,7 +83,6 @@ def plot_sequences_with_predictions(
         ax.set_title(f'Entry {i + 1}')
 
     plt.tight_layout()
-    plt.show()
 
     pass
 
@@ -99,5 +98,6 @@ if __name__ == '__main__':
     data = [PredictionData(data, preds)]
 
     plot_sequences_with_predictions(data)
+    plt.show()
 
     pass

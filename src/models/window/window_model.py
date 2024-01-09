@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import numpy as np
 import pandas as pd
@@ -56,8 +56,8 @@ class WindowModel:
         self.scaler: Optional[MinMaxScaler] = None
         self.target_col_indexes = None
 
-    def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
-              val_perc: float = 0.2) -> Tuple[float, float]:
+    def train(self, params: TrainParams, sequences: list[pd.DataFrame],
+              val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
         self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
@@ -109,14 +109,7 @@ class WindowModel:
 
         early_stopping.retrieve()
 
-        # TODO: Save plots to directory
-        if plot:
-            plt.plot(train_losses, label="Train losses")
-            plt.plot(val_losses, label="Val losses")
-            plt.legend()
-            plt.show()
-
-        return train_losses[-1], val_losses[-1]
+        return train_losses, val_losses
 
     def data_transform(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range

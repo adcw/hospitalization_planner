@@ -17,10 +17,10 @@ model_params:
     #Add learning rate and other session_payload for network
 train:
   es_patience: 9
-  epochs: 200
+  epochs: 3
   sequence_limit: Null # No limit = Null
 eval:
   es_patience: 9
-  epochs: 200
+  epochs: 3
   sequence_limit: Null # No limit = Null
   n_splits: 5
