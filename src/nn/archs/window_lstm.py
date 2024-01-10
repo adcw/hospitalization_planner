@@ -81,8 +81,6 @@ class WindowedConvLSTM(nn.Module):
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            # CLD(channels=48, kernel_size=3, activation=nn.Tanh),
-            # CLD(channels=32, kernel_size=3, activation=nn.Tanh),
         ]
 
         self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=0)

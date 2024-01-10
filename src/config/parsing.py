@@ -3,6 +3,7 @@ from typing import Tuple
 import torch
 import torch.nn.functional as F
 import yaml
+from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 
 from src.config.dataclassess import StepModelParams, TrainParams, EvalParams, activation_dict, WindowModelParams
 
@@ -48,10 +49,22 @@ def _parse_window_params(data) -> WindowModelParams:
     cols_predict = data['model_params']['cols_predict']
     save_path = model_params_data['save_path']
 
+    conv_layer_data_raw = model_params_data['conv_layer_data']
+    lstm_hidden_size = model_params_data['lstm_hidden_size']
+
+    conv_layer_data = [
+        CLD(channels=entry['channels'], kernel_size=entry['kernel_size'],
+            activation=activation_dict.get(entry['activation'], F.relu))
+        for entry in conv_layer_data_raw
+    ]
+
     return WindowModelParams(
         n_steps_predict=n_steps_predict,
         cols_predict=cols_predict,
-        save_path=save_path
+        save_path=save_path,
+
+        conv_layer_data=conv_layer_data,
+        lstm_hidden_size=lstm_hidden_size
     )
 
 

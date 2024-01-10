@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
-from src.config.dataclassess import StepModelParams, TrainParams
+from src.config.dataclassess import StepModelParams, TrainParams, WindowModelParams
 from src.models.utils import dfs2tensors
 from src.models.window.forward import forward_sequences, pad_sequences
 from src.nn.archs.window_lstm import WindowedConvLSTM
@@ -18,7 +18,7 @@ from torch.functional import F
 
 class WindowModel:
     def __init__(self,
-                 params: StepModelParams,
+                 params: WindowModelParams,
                  n_attr_in: int,
                  window_size: int = 9,
                  ):
@@ -26,17 +26,16 @@ class WindowModel:
         self.n_attr_out = len(params.cols_predict) if params.cols_predict is not None else n_attr_in
         self.model_params = params
 
-        # self.model = WindowedLSTM(input_size=self.n_attr_in,
-        #                           output_size=self.n_attr_out * self.model_params.n_steps_predict,
-        #                           device=self.model_params.device)
-
         self.model = WindowedConvLSTM(
-            output_size=self.n_attr_out * self.model_params.n_steps_predict,
-            device=self.model_params.device,
+            output_size=self.n_attr_out * params.n_steps_predict,
+            device=params.device,
             n_attr=self.n_attr_in,
 
+            # Conv
+            conv_layers_data=params.conv_layer_data,
+
             # LSTM
-            lstm_hidden_size=128,
+            lstm_hidden_size=params.lstm_hidden_size,
             lstm_layers=2,
             lstm_dropout=0.5,
 

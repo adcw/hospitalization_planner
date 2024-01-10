@@ -7,6 +7,21 @@ model_params:
   net_params:
     device: 'cuda:0'
     save_path: 'models'
+
+    conv_layer_data:
+      - channels: 32
+        kernel_size: 3
+        activation: relu
+
+      - channels: 32
+        kernel_size: 3
+        activation: relu
+
+      - channels: 32
+        kernel_size: 3
+        activation: relu
+
+    lstm_hidden_size: 128,
     #Add learning rate and other session_payload for network
 train:
   es_patience: 9

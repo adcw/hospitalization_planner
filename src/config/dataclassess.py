@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 
 import torch
 import torch.nn.functional as F
+
+from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 
 activation_dict = {
     "relu": F.relu,
@@ -51,6 +53,8 @@ class WindowModelParams:
     cols_predict: Optional[list[str]] = None
     n_steps_predict: int = 1
 
+    conv_layer_data: Optional[List[CLD]] = None
+
     lstm_hidden_size: int = 64
     n_lstm_layers: int = 2
     lstm_dropout: int = 0.2
@@ -64,6 +68,7 @@ class WindowModelParams:
 
     def __repr__(self):
         return f"{self.device=}\n" \
+               f"{self.conv_layer_data=}\n" \
                f"{self.lstm_hidden_size=}\n" \
                f"{self.n_lstm_layers=}\n" \
                f"{self.n_steps_predict=}\n" \
