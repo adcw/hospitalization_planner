@@ -98,8 +98,6 @@ class ModelManager:
     def start(self):
         mode = prompt_mode()
 
-        # base_dir(f"{self.session_path}/{mode}_{self.session_id}")
-
         if mode == "train":
             model_name = prompt_model_name()
             train_dir = base_dir(f"{self.session_path}/train_{model_name}_{self.session_id}")
@@ -110,8 +108,6 @@ class ModelManager:
             print(self.session_payload.train_params)
 
             self._split_sequences(self.session_payload.train_params.sequence_limit)
-
-            time.sleep(1)
 
             trained_model = train_model(payload=self.session_payload,
                                         sequences=self.sequences_train)
@@ -126,8 +122,6 @@ class ModelManager:
                 payload = deepcopy(self.session_payload)
                 payload.model = trained_model
 
-                # model_dir = f"{self.session_path}/models/{model_name}_{self.session_id}"
-                #
                 if not os.path.exists(train_dir):
                     os.makedirs(train_dir)
 
@@ -143,7 +137,7 @@ class ModelManager:
                 sys.exit(0)
 
             only_name = "_".join(model_name.split("_")[1:-2])
-            test_dir = base_dir(f"{self.session_path}/test_{only_name}_{self.session_id}")
+            base_dir(f"{self.session_path}/test_{only_name}_{self.session_id}")
 
             self._split_sequences(self.session_payload.train_params.sequence_limit)
 
@@ -161,15 +155,14 @@ class ModelManager:
                 save_plot(f"preds.png")
 
         elif mode == "eval":
-            base_dir(f"{self.session_path}/eval_{self.session_id}")
+            eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
             self._split_sequences(self.session_payload.eval_params.sequence_limit)
 
             print("Read eval session_payload:")
             print(self.session_payload.eval_params)
 
-            time.sleep(1)
-
             eval_model(self.session_payload, self.sequences_train + self.sequences_test)
+            shutil.copy(self.config_path, f"{eval_dir}/config.yaml")
             pass
         else:
             raise ValueError(f"Unknown mode: {mode}")
