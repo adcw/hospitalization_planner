@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,7 +44,7 @@ class StepModel:
         self.target_col_indexes = None
 
     def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
-              val_perc: float = 0.2) -> Tuple[float, float]:
+              val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
         """
         Train the model
 
@@ -111,9 +111,8 @@ class StepModel:
             plt.plot(train_losses, label="Train losses")
             plt.plot(val_losses, label="Val losses")
             plt.legend()
-            plt.show()
 
-        return train_losses[-1], val_losses[-1]
+        return train_losses, val_losses
 
     def data_transform(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
