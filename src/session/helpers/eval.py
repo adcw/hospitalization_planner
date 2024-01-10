@@ -28,9 +28,9 @@ def eval_model(
 
     kf = RegressionStratKFold()
 
-    train_losses = []
-    val_losses = []
-    test_losses = []
+    split_train_losses = []
+    split_val_losses = []
+    split_test_losses = []
 
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
@@ -44,8 +44,6 @@ def eval_model(
 
         # Train on sequences
         train_losses, val_losses = model.train(train_params, train_sequences)
-        train_loss = train_losses[-1]
-        val_loss = val_losses[-1]
 
         plt.plot(train_losses, label="Train losses")
         plt.plot(val_losses, label="Val losses")
@@ -57,29 +55,35 @@ def eval_model(
 
         # Perform test
         test_loss = test_model(model_payload, val_sequences, plot=True)
+        plt.subplots_adjust(top=0.95)
+        plt.suptitle(f"Test loss: {test_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/preds.png")
 
-        train_losses.append(train_loss)
-        val_losses.append(val_loss)
-        test_losses.append(test_loss)
+        train_loss = train_losses[-1]
+        val_loss = val_losses[-1]
+
+        split_train_losses.append(train_loss)
+        split_val_losses.append(val_loss)
+        split_test_losses.append(test_loss)
+
         print(f"Mean test loss: {test_loss}")
 
-    plt.plot(train_losses, 'o', label="train_loss")
-    plt.plot(val_losses, 'o', label="val_loss")
-    plt.plot(test_losses, 'o', label="test_loss")
+    plt.plot(split_train_losses, 'o', label="train_loss")
+    plt.plot(split_val_losses, 'o', label="val_loss")
+    plt.plot(split_test_losses, 'o', label="test_loss")
 
     # Adding text labels near data markers
-    for i, value in enumerate(train_losses):
+    for i, value in enumerate(split_train_losses):
         plt.text(i, value, f'{value:.4f}', ha='center', va='bottom')
 
-    for i, value in enumerate(val_losses):
+    for i, value in enumerate(split_val_losses):
         plt.text(i, value, f'{value:.4f}', ha='center', va='bottom')
 
-    for i, value in enumerate(test_losses):
+    for i, value in enumerate(split_test_losses):
         s = f'{value:.4f}' if value is not None else ""
         plt.text(i, value, s, ha='center', va='bottom')
 
-    plt.title(f"Losses on each fold. Avg = {np.average(test_losses)}")
+    plt.title(f"Losses on each fold. Avg = {np.average(split_train_losses)}")
     plt.legend()
     plt.grid(True)
 
