@@ -12,9 +12,41 @@ activation_dict = {
 
 
 @dataclass
-class ModelParams:
+class StepModelParams:
     """
-    Class that contains all the data for neural network architecture
+    Class that contains all the data for step model network architecture
+    """
+    cols_predict: Optional[list[str]] = None
+    n_steps_predict: int = 1
+
+    lstm_hidden_size: int = 64
+    n_lstm_layers: int = 2
+    lstm_dropout: int = 0.2
+
+    fccn_arch: Optional[list[int]] = None
+    fccn_dropout_p: float = 0.15
+    fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
+
+    device: torch.device = 'cpu'
+    save_path: str = 'models'
+
+    def __repr__(self):
+        return f"{self.device=}\n" \
+               f"{self.lstm_hidden_size=}\n" \
+               f"{self.n_lstm_layers=}\n" \
+               f"{self.n_steps_predict=}\n" \
+               f"{self.lstm_dropout=}\n" \
+               f"{self.fccn_arch=}\n" \
+               f"{self.fccn_dropout_p=}\n" \
+               f"{self.fccn_activation=}\n" \
+               f"{self.cols_predict=}\n" \
+               f"{self.save_path=}\n"
+
+
+@dataclass
+class WindowModelParams:
+    """
+    Class that contains all the data for window model network architecture
     """
     cols_predict: Optional[list[str]] = None
     n_steps_predict: int = 1
