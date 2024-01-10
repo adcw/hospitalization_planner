@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
-from src.config.dataclassess import ModelParams, TrainParams
+from src.config.dataclassess import StepModelParams, TrainParams
 from src.models.utils import dfs2tensors
 from src.models.window.forward import forward_sequences, pad_sequences
 from src.nn.archs.window_lstm import WindowedConvLSTM
@@ -18,7 +18,7 @@ from torch.functional import F
 
 class WindowModel:
     def __init__(self,
-                 params: ModelParams,
+                 params: StepModelParams,
                  n_attr_in: int,
                  window_size: int = 9,
                  ):

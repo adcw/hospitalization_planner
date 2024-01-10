@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
+from src.config.dataclassess import WindowModelParams, StepModelParams
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
@@ -35,8 +36,12 @@ def eval_model(
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
 
-        model = WindowModel(payload.model_params, n_attr_in=sequences[0].shape[1])
-        # model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        if type(payload.model_params) == WindowModelParams:
+            model = WindowModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        elif type(payload.model_params) == StepModelParams:
+            model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        else:
+            raise TypeError(f"Unknown param type: {type(payload.model_params)}")
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]

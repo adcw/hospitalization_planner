@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from tqdm import tqdm
 
-from src.config.dataclassess import ModelParams
+from src.config.dataclassess import StepModelParams
 from src.nn.callbacks.metrics import MAECounter
 
 
@@ -12,7 +12,7 @@ def forward_sequences(
 
         # TODO: Fill typing
         model,
-        model_params: ModelParams,
+        model_params: StepModelParams,
         optimizer,
         criterion,
 

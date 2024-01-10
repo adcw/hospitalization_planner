@@ -7,7 +7,7 @@ import torch
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
-from src.config.parsing import ModelParams, TrainParams
+from src.config.parsing import StepModelParams, TrainParams
 from src.models.step.forward import forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
@@ -16,7 +16,7 @@ from src.nn.callbacks.early_stopping import EarlyStopping
 
 class StepModel:
     def __init__(self,
-                 params: ModelParams,
+                 params: StepModelParams,
                  n_attr_in: int,
                  ):
         """

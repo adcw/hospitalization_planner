@@ -1,0 +1,27 @@
+# Contain all data about model structure and training process.
+# basically how to create the next instance of model.
+model_type: step # step / window
+model_params:
+  n_steps_predict: 1 #How many future steps we predict?
+  cols_predict: [ "respiration" ] #Null value means we are predicting all fields
+  net_params:
+    lstm_hidden_size: 16
+    n_lstm_layers: 3
+    lstm_dropout: 0.1
+
+    fccn_arch: [ 128, 64, 32, 8 ]
+    fccn_dropout_p: 0.1
+    fccn_activation: 'selu'  # relu, selu, sigmoid
+
+    device: 'cuda:0'
+    save_path: 'models'
+    #Add learning rate and other session_payload for network
+train:
+  es_patience: 9
+  epochs: 1
+  sequence_limit: 20 # No limit = Null
+eval:
+  es_patience: 9
+  epochs: 1
+  sequence_limit: 20 # No limit = Null
+  n_splits: 3
