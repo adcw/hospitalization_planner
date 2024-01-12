@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from tqdm import tqdm
 
-from src.config.dataclassess import StepModelParams
+from src.config.dataclassess import StepModelParams, WindowModelParams
 from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.metrics import MAECounter
 
@@ -63,7 +63,7 @@ def forward_sequences(
 
         # TODO: Fill typing
         model: WindowedConvLSTM,
-        model_params: StepModelParams,
+        model_params: StepModelParams | WindowModelParams,
         optimizer,
         criterion,
 

@@ -50,21 +50,21 @@ def _parse_window_params(data) -> WindowModelParams:
     save_path = model_params_data['save_path']
 
     conv_layer_data_raw = model_params_data['conv_layer_data']
-    lstm_hidden_size = model_params_data['lstm_hidden_size']
+    # lstm_hidden_size = model_params_data['lstm_hidden_size']
 
-    conv_layer_data = [
-        CLD(channels=entry['channels'], kernel_size=entry['kernel_size'],
-            activation=activation_dict.get(entry['activation'], F.relu))
-        for entry in conv_layer_data_raw
-    ]
+    # conv_layer_data = [
+    #     CLD(channels=entry['channels'], kernel_size=entry['kernel_size'],
+    #         activation=activation_dict.get(entry['activation'], F.relu))
+    #     for entry in conv_layer_data_raw
+    # ]
 
     return WindowModelParams(
         n_steps_predict=n_steps_predict,
         cols_predict=cols_predict,
         save_path=save_path,
 
-        conv_layer_data=conv_layer_data,
-        lstm_hidden_size=lstm_hidden_size
+        # conv_layer_data=conv_layer_data,
+        # lstm_hidden_size=lstm_hidden_size
     )
 
 
