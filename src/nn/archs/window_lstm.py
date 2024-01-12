@@ -109,28 +109,45 @@ class WindowedConvLSTM(nn.Module):
     def forward(self, x, m):
         # x.shape = (batch, seq, feat)
 
-        # (batch, feat)
-        # x_range = masked_range(x, m, dim=1)
-
-        # (batch, feat, seq)
         x_perm = x.permute(0, 2, 1)
+        # (batch, feat, seq)
+
         x_conv = self.mlconv(x_perm)
-        # x_conv = F.selu(x_conv)
         x_conv = x_conv.permute(0, 2, 1)
+        # (batch, seq, feat)
 
         self.lstm.flatten_parameters()
-        # (batch, seq, feat)
         x_lstm, _ = self.lstm(x_conv)
 
         # (batch, feat)
-        x_lstm = x_lstm[:, -1, :]
-        # x_lstm = self.post_lstm_bnm(x_lstm)
+        x_lstm = F.adaptive_avg_pool1d(x_lstm.permute(0, 2, 1), (1,)).view(x_lstm.size(0), -1)
         x_lstm = F.tanh(x_lstm)
 
-        # fccn_in = torch.cat([x_lstm, x_range[:, -1:]], dim=1)
         mlp_in = x_lstm
 
         x_mlp = self.mlp(mlp_in)
         output = F.sigmoid(x_mlp)
 
         return output
+"""
+    def forward(self, x):
+        x = x.permute(0, 2, 1)
+        x = self.conv1d(x)
+        x = F.selu(x)
+
+        x = self.dropout_conv(x)
+
+        x = x.permute(0, 2, 1)
+        output, _ = self.lstm(x)
+
+        # Uzyskanie ostatniego elementu z sekwencji
+        output = F.adaptive_avg_pool1d(output.permute(0, 2, 1), (1,)).view(output.size(0), -1)
+
+        output = self.dense(output)
+        output = F.selu(output)
+
+        output = self.classifier(output)
+        output = F.selu(output)
+
+        return output
+"""

@@ -24,11 +24,11 @@ model_params:
     lstm_hidden_size: 128,
     #Add learning rate and other session_payload for network
 train:
-  es_patience: 9
-  epochs: 1
-  sequence_limit: 20 # No limit = Null
+  es_patience: 15
+  epochs: 200
+  sequence_limit: Null # No limit = Null
 eval:
-  es_patience: 9
-  epochs: 1
-  sequence_limit: 20 # No limit = Null
-  n_splits: 3
+  es_patience: 7
+  epochs: 200
+  sequence_limit: Null # No limit = Null
+  n_splits: 5
