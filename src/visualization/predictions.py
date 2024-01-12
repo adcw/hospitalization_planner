@@ -26,15 +26,19 @@ def plot_pred_comparison(plot_data: List[Tuple[np.array, np.array]]):
                 if len(plot_data) == 0:
                     break
 
+                ax = axs[i, j]
+
                 if num_subplots > 0:
                     y_real, y_pred = plot_data.pop(0)
-                    axs[i, j].plot(y_real, label=f'real')
-                    axs[i, j].plot(y_pred, label=f'pred')
-                    axs[i, j].legend()
-                    axs[i, j].set_ylim(-0.1, 1.1)
+
+                    ax.plot(y_real, label=f'real')
+                    ax.plot(y_pred, label=f'pred')
+                    ax.legend()
+                    ax.set_ylim(-0.1, 1.1)
+                    ax.axhline(y=0.5, color='r', linestyle='--', label='Próg')
                 else:
-                    axs[i, j].axis('off')
-                    axs[i, j].set_ylim(-0.1, 1.1)
+                    ax.axis('off')
+                    ax.set_ylim(-0.1, 1.1)
 
     plt.tight_layout()
     plt.suptitle("Predictions")
@@ -81,6 +85,13 @@ def plot_sequences_with_predictions(
         ax.set_xlabel('Index')
         ax.set_ylabel('Value')
         ax.set_title(f'Entry {i + 1}')
+
+        n_classes = 5
+        middles = np.arange(0, n_classes) / (n_classes - 1)
+        borders = middles[:-1] + ((middles[1] - middles[0]) / 2)
+
+        for b in borders:
+            ax.axhline(y=b, color='gray', linestyle='--', alpha=0.2)
 
     plt.tight_layout()
 
