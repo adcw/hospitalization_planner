@@ -17,6 +17,16 @@ def test_model(
         max_per_sequence: Optional[int] = 5,
         plot: bool = True
 ):
+    """
+
+    :param model_payload:
+    :param sequences:
+    :param limit:
+    :param offset:
+    :param max_per_sequence:
+    :param plot:
+    :return: Average MAE loss
+    """
     cnt = 0
     end = False
 

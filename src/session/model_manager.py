@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 import shutil
 
+from matplotlib import pyplot as plt
+
 import data.colnames_original as c
 from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
@@ -151,7 +153,9 @@ class ModelManager:
 
                 time.sleep(1)
 
-                test_model(model_payload, sequences=self.sequences_test)
+                test_loss = test_model(model_payload, sequences=self.sequences_test)
+                plt.subplots_adjust(top=0.95)
+                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"preds.png")
 
         elif mode == "eval":

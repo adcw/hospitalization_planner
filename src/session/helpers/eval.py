@@ -61,7 +61,7 @@ def eval_model(
         # Perform test
         test_loss = test_model(model_payload, val_sequences, plot=True)
         plt.subplots_adjust(top=0.95)
-        plt.suptitle(f"Test loss: {test_loss}", fontsize=20)
+        plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/preds.png")
 
         train_loss = train_losses[-1]
@@ -88,7 +88,7 @@ def eval_model(
         s = f'{value:.4f}' if value is not None else ""
         plt.text(i, value, s, ha='center', va='bottom')
 
-    plt.title(f"Losses on each fold. Avg = {np.average(split_train_losses)}")
+    plt.title(f"Losses on each fold. Avg test loss = {np.average(split_test_losses)}")
     plt.legend()
     plt.grid(True)
 
