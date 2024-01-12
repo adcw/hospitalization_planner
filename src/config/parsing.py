@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import yaml
 from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 
-from src.config.dataclassess import StepModelParams, TrainParams, EvalParams, activation_dict, WindowModelParams
+from src.config.dataclassess import StepModelParams, TrainParams, EvalParams, activation_dict, WindowModelParams, \
+    TestParams
 
 
 def _parse_step_params(data):
@@ -68,7 +69,7 @@ def _parse_window_params(data) -> WindowModelParams:
     )
 
 
-def parse_config(yaml_path: str) -> Tuple[StepModelParams | WindowModelParams, TrainParams, EvalParams]:
+def parse_config(yaml_path: str) -> Tuple[StepModelParams | WindowModelParams, TrainParams, EvalParams, TestParams]:
     with open(yaml_path, 'r') as yaml_file:
         data = yaml.safe_load(yaml_file)
 
@@ -104,4 +105,10 @@ def parse_config(yaml_path: str) -> Tuple[StepModelParams | WindowModelParams, T
                              sequence_limit=sequence_limit,
                              n_splits=n_splits)
 
-    return model_params, train_params, eval_params
+    # Extract test parameters
+    test_params_data = data['test']
+    test_mode = test_params_data['mode']
+
+    test_params = TestParams(mode=test_mode)
+
+    return model_params, train_params, eval_params, test_params

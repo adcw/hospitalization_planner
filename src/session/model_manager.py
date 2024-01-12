@@ -82,9 +82,11 @@ class ModelManager:
 
         self.test_perc = test_perc
 
-        model_params, train_params, eval_params = parse_config(config_path)
-        self.session_payload = SessionPayload(model_params=model_params, train_params=train_params,
+        model_params, train_params, eval_params, test_params = parse_config(config_path)
+        self.session_payload = SessionPayload(model_params=model_params,
+                                              train_params=train_params,
                                               eval_params=eval_params,
+                                              test_params=test_params,
                                               model=None)
 
         self.sequences, self.preprocessor = _get_sequences()

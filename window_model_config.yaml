@@ -32,3 +32,5 @@ eval:
   epochs: 200
   sequence_limit: Null # No limit = Null
   n_splits: 5
+test:
+  mode: full # full - test at each sequence point, pessimistic - test only at shift points

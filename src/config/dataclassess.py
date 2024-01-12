@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Literal
 
 import torch
 import torch.nn.functional as F
@@ -86,6 +86,7 @@ class TrainParams:
     Parameters used for training
     :var es_patience: Early stopping patience
     :var epochs: Max number of epochs
+    :var sequence_limit: Max number of sequences, used only for development purposes
     """
     es_patience: int = 2
     epochs: int = 30
@@ -114,3 +115,24 @@ class EvalParams:
                f"{self.epochs=}\n" \
                f"{self.n_splits=}\n" \
                f"{self.sequence_limit=}\n"
+
+
+SUPPORTED_TEST_MODES = ["full", "pessimistic"]
+
+
+@dataclass
+class TestParams:
+    """
+    Parameters used for test
+    """
+    mode: str
+
+    def __init__(self, mode: str):
+        if mode not in SUPPORTED_TEST_MODES:
+            raise ValueError(
+                f"Mode \"{mode}\" is not a supported testing mode. Choose one of the following: {SUPPORTED_TEST_MODES}")
+
+        self.mode = mode
+
+    def __repr__(self):
+        return f"{self.mode=}"
