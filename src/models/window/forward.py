@@ -46,7 +46,7 @@ def windows_and_masks_generator(sequences,
     for seq, seq_len in zip(sequences, seq_lens):
         for i in range(seq_len - n_predictions):
             windows.append(seq[max(i - window_size + 1, 0): i + 1])
-            ys.append(seq[i + 1:i + 1 + n_predictions, y_columns])
+            ys.append(seq[i + 1:i + 1 + n_predictions, y_columns][0])
 
             if len(windows) == batch_size:
                 yield batch()
@@ -80,7 +80,7 @@ def forward_sequences(
     generator = windows_and_masks_generator(sequences, window_size,
                                             n_predictions=model_params.n_steps_predict,
                                             batch_size=64,
-                                            y_columns=sequences[0].shape[1] - 1)
+                                            y_columns=target_indexes)
 
     # Select proper mode
     if is_eval:
