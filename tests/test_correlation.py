@@ -18,10 +18,9 @@ def correlation_ranking(dataframe):
 
     ranking.sort(key=lambda x: abs(x[2]), reverse=True)
 
-    ranking_df = pd.DataFrame(ranking, columns=['Kolumna_1', 'Kolumna_2', 'Korelacja'])
+    ranking_df = pd.DataFrame(ranking, columns=['col1', 'col2', 'corr'])
 
     return ranking_df
-
 """
 ptl
 po2
