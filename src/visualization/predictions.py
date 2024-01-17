@@ -74,11 +74,13 @@ def plot_sequences_with_predictions(
 
         ax.plot(original_sequence, "--", label='Original Sequence')
 
+        show_details = len(preds) <= 10
+
         for index, pred_sequence in preds:
             pred_start = max(index, 0)
             pred_end = pred_start + len(pred_sequence)
             ax.plot(range(pred_start, pred_end), pred_sequence, ".",
-                    label=f'Prediction at Index {index}')
+                    label=f'Prediction at Index {index}' if show_details else None)
 
         ax.set_ylim(-0.1, 1.1)
         ax.legend()

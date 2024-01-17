@@ -9,17 +9,17 @@ from src.visualization.predictions import PredictionData, plot_sequences_with_pr
 
 
 def test_model(
-        model_payload: SessionPayload,
+        session_payload: SessionPayload,
         sequences: list[pd.DataFrame],
         limit: Optional[int] = None,
         offset: int = 0,
 
-        max_per_sequence: Optional[int] = 5,
+        max_per_sequence: Optional[int] = None,
         plot: bool = True
 ):
     """
 
-    :param model_payload:
+    :param session_payload:
     :param sequences:
     :param limit:
     :param offset:
@@ -35,10 +35,17 @@ def test_model(
     loss_calc_count = 0
 
     for seq in tqdm(sequences[offset:], desc="Analysing test cases"):
-        target_col = seq[model_payload.model_params.cols_predict]
-        diff = np.diff(target_col, axis=0)
-        points, _ = np.where(diff != 0)
-        points += 1
+
+        target_col = seq[session_payload.model_params.cols_predict]
+
+        if session_payload.test_params.mode == "full":
+            points = [i for i in range(2, len(seq - session_payload.model_params.n_steps_predict))]
+        elif session_payload.test_params.mode == "pessimistic":
+            diff = np.diff(target_col, axis=0)
+            points, _ = np.where(diff != 0)
+            points += 1
+        else:
+            raise ValueError(f"Unsuported test mode: {session_payload.test_params.mode}")
 
         # If there is more points than max allowed, get random points of max count allowed.
         if max_per_sequence is not None and len(points) > max_per_sequence:
@@ -54,16 +61,16 @@ def test_model(
 
             x_real = seq[:point]
 
-            y_real = seq[point:point + model_payload.model_params.n_steps_predict] \
-                         .iloc[:, model_payload.model.target_col_indexes].values
+            y_real = seq[point:point + session_payload.model_params.n_steps_predict] \
+                         .iloc[:, session_payload.model.target_col_indexes].values
 
-            if y_real.shape[0] != model_payload.model_params.n_steps_predict or x_real.shape[0] == 0:
+            if y_real.shape[0] != session_payload.model_params.n_steps_predict or x_real.shape[0] == 0:
                 continue
 
-            y_real_raw = model_payload.model.data_transform(y_real)
+            y_real_raw = session_payload.model.data_transform(y_real)
 
-            y_pred_raw = model_payload.model.predict(x_real, return_inv_transformed=False)
-            y_pred = model_payload.model.data_inverse_transform(y_pred_raw)
+            y_pred_raw = session_payload.model.predict(x_real, return_inv_transformed=False)
+            y_pred = session_payload.model.data_inverse_transform(y_pred_raw)
 
             y_pred = y_pred.reshape((y_pred.shape[1], -1))
 

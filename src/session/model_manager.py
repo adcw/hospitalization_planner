@@ -116,9 +116,11 @@ class ModelManager:
             trained_model = train_model(payload=self.session_payload,
                                         sequences=self.sequences_train)
 
-            payload = SessionPayload(model=trained_model, model_params=self.session_payload.model_params,
+            payload = SessionPayload(model=trained_model,
+                                     model_params=self.session_payload.model_params,
                                      train_params=self.session_payload.train_params,
-                                     eval_params=self.session_payload.eval_params)
+                                     eval_params=self.session_payload.eval_params,
+                                     test_params=self.session_payload.test_params)
 
             test_model(payload, sequences=self.sequences_test)
 
@@ -146,16 +148,17 @@ class ModelManager:
             self._split_sequences(self.session_payload.train_params.sequence_limit)
 
             with open(f"{self.session_path}/{model_name}/model.pkl", "rb") as file:
-                model_payload: SessionPayload = load(file)
+                session_payload: SessionPayload = load(file)
+                session_payload.test_params = self.session_payload.test_params
 
-                print("Read model session_payload:")
-                print(model_payload.model_params)
-                print("Read train session_payload:")
-                print(model_payload.train_params)
+                print("Model Params:")
+                print(session_payload.model_params)
+                print("Train Params")
+                print(session_payload.train_params)
+                print("Test Params")
+                print(session_payload.train_params)
 
-                time.sleep(1)
-
-                test_loss = test_model(model_payload, sequences=self.sequences_test)
+                test_loss = test_model(session_payload, sequences=self.sequences_test)
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"preds.png")
