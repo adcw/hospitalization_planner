@@ -16,7 +16,8 @@ def test_model(
 
         max_per_sequence: Optional[int] = None,
         plot: bool = True,
-        mode: str = "full"
+        mode: str = "full",
+        max_plots: int = 12,
 ):
     """
 
@@ -50,8 +51,8 @@ def test_model(
         if max_per_sequence is not None and len(points) > max_per_sequence:
             points = np.random.choice(points, size=max_per_sequence, replace=False)
 
-        if len(points) == 0:
-            continue
+        # if len(points) == 0:
+        #     continue
 
         predictions: List[Tuple[int, np.iterable]] = []
         plot_this_seq = plot_indexes is None or seq_i in plot_indexes
@@ -87,7 +88,7 @@ def test_model(
                 end = True
                 break
 
-        if plot and len(predictions) > 0:
+        if plot and plot_this_seq > 0:
             pred_data = PredictionData(target_col.values, predictions)
             plot_data.append(pred_data)
 
@@ -95,6 +96,6 @@ def test_model(
             break
 
     if plot:
-        plot_sequences_with_predictions(plot_data)
+        plot_sequences_with_predictions(plot_data, max_plots=max_plots)
 
     return loss_sum / loss_calc_count if loss_calc_count != 0 else None

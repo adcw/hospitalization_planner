@@ -52,18 +52,18 @@ class PredictionData:
 
 
 def plot_sequences_with_predictions(
-        data: List[PredictionData]
+        data: List[PredictionData],
+        max_plots: int = 12,
+        max_cols: int = 4
 ):
-    max_plots = 12
     num_entries = len(data)
 
-    cols = 2
-
     num_plots = min(max_plots, num_entries)
-    num_rows = num_plots // cols if num_plots % cols == 0 else (num_plots // cols) + 1
+    num_cols = min(max_cols, num_plots)
+    num_rows = num_plots // num_cols if num_plots % num_cols == 0 else (num_plots // num_cols) + 1
 
-    fig, axes = plt.subplots(num_rows, cols, figsize=(15, 5 * num_rows))
-    axes = axes.flatten()
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(7 * num_cols, 5 * num_rows))
+    axes = np.array(axes).flatten()
 
     for i in range(num_plots):
         entry = data[i]
@@ -96,8 +96,6 @@ def plot_sequences_with_predictions(
             ax.axhline(y=b, color='gray', linestyle='--', alpha=0.2)
 
     plt.tight_layout()
-
-    pass
 
 
 if __name__ == '__main__':

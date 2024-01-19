@@ -134,17 +134,19 @@ class ModelManager:
 
             testing_mode = payload.test_params.mode
 
-            plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], 12)
+            max_plots = 16
+            plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
 
             if testing_mode == "full" or testing_mode == "both":
-                test_loss = test_model(payload, sequences=self.sequences_test, mode="full", plot_indexes=plot_indexes)
+                test_loss = test_model(payload, sequences=self.sequences_test, mode="full", plot_indexes=plot_indexes,
+                                       max_plots=max_plots)
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"test_full.png")
 
             if testing_mode == "pessimistic" or testing_mode == "both":
                 test_loss = test_model(payload, sequences=self.sequences_test, mode="pessimistic",
-                                       plot_indexes=plot_indexes)
+                                       plot_indexes=plot_indexes, max_plots=max_plots)
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"test_pessimistic.png")
@@ -181,12 +183,24 @@ class ModelManager:
                 print("Test Params")
                 print(session_payload.test_params)
 
-                plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], 12)
-                test_loss = test_model(session_payload, sequences=self.sequences_test, plot_indexes=plot_indexes)
+                max_plots = 16
+                testing_mode = session_payload.test_params.mode
+                plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
 
-                plt.subplots_adjust(top=0.95)
-                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
-                save_plot(f"preds.png")
+                if testing_mode == "full" or testing_mode == "both":
+                    test_loss = test_model(session_payload, sequences=self.sequences_test, mode="full",
+                                           plot_indexes=plot_indexes,
+                                           max_plots=max_plots)
+                    plt.subplots_adjust(top=0.95)
+                    plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+                    save_plot(f"test_full.png")
+
+                if testing_mode == "pessimistic" or testing_mode == "both":
+                    test_loss = test_model(session_payload, sequences=self.sequences_test, mode="pessimistic",
+                                           plot_indexes=plot_indexes, max_plots=max_plots)
+                    plt.subplots_adjust(top=0.95)
+                    plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+                    save_plot(f"test_pessimistic.png")
 
         elif mode == "eval":
             eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
