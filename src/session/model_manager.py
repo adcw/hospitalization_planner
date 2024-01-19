@@ -128,7 +128,19 @@ class ModelManager:
                                      eval_params=self.session_payload.eval_params,
                                      test_params=self.session_payload.test_params)
 
-            test_model(payload, sequences=self.sequences_test)
+            testing_mode = payload.test_params.mode
+
+            if testing_mode == "full" or testing_mode == "both":
+                test_loss = test_model(payload, sequences=self.sequences_test, mode="full")
+                plt.subplots_adjust(top=0.95)
+                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+                save_plot(f"test_full.png")
+
+            if testing_mode == "pessimistic" or testing_mode == "both":
+                test_loss = test_model(payload, sequences=self.sequences_test, mode="pessimistic")
+                plt.subplots_adjust(top=0.95)
+                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+                save_plot(f"test_pessimistic.png")
 
             if model_name:
                 payload = deepcopy(self.session_payload)

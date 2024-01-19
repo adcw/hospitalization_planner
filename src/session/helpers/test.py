@@ -15,7 +15,8 @@ def test_model(
         offset: int = 0,
 
         max_per_sequence: Optional[int] = None,
-        plot: bool = True
+        plot: bool = True,
+        mode: str = "both"
 ):
     """
 
@@ -38,14 +39,14 @@ def test_model(
 
         target_col = seq[session_payload.main_params.cols_predict]
 
-        if session_payload.test_params.mode == "full":
+        if mode == "full":
             points = [i for i in range(2, len(seq - session_payload.main_params.n_steps_predict))]
-        elif session_payload.test_params.mode == "pessimistic":
+        elif mode == "pessimistic":
             diff = np.diff(target_col, axis=0)
             points, _ = np.where(diff != 0)
             points += 1
         else:
-            raise ValueError(f"Unsuported test mode: {session_payload.test_params.mode}")
+            raise ValueError(f"Unsuported test mode: {mode}")
 
         # If there is more points than max allowed, get random points of max count allowed.
         if max_per_sequence is not None and len(points) > max_per_sequence:

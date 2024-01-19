@@ -60,7 +60,7 @@ class EvalParams:
                f"{self.sequence_limit=}\n"
 
 
-SUPPORTED_TEST_MODES = ["full", "pessimistic"]
+SUPPORTED_TEST_MODES = ["full", "pessimistic", "both"]
 
 
 @dataclass
