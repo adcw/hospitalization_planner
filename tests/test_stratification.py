@@ -18,7 +18,7 @@ def test_kfold(sequences, strat_col_indx):
     splits_classes = []
     for split_index, (_, test_idx) in enumerate(splits):
         for i in test_idx:
-            splits_list.append(kfold._features[i])
+            splits_list.append(kfold.features[i])
             splits_classes.append(split_index)
 
     splits_list = np.stack(splits_list)

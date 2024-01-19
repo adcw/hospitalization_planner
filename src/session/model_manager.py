@@ -16,6 +16,7 @@ import data.colnames_original as c
 from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
+from src.model_selection.stratified_sampling import stratified_sampling
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.session_payload import SessionPayload
@@ -90,6 +91,7 @@ class ModelManager:
                                               model=None)
 
         self.sequences, self.preprocessor = _get_sequences()
+        self.splitter: Optional[RegressionTrainTestSplitter] = None
 
     # TODO: This is hardcoded
     def _split_sequences(self, limit: int = None):
@@ -97,6 +99,8 @@ class ModelManager:
         self.sequences_train, self.sequences_test = splitter.fit_split(
             self.sequences[:limit], test_size=self.test_perc,
             n_clusters=5)
+        self.splitter = splitter
+
         # splitter.plot_split(title="Train and test split", axe_titles=['a', 'b', 'std'])
 
     def start(self):
@@ -130,14 +134,17 @@ class ModelManager:
 
             testing_mode = payload.test_params.mode
 
+            plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], 12)
+
             if testing_mode == "full" or testing_mode == "both":
-                test_loss = test_model(payload, sequences=self.sequences_test, mode="full")
+                test_loss = test_model(payload, sequences=self.sequences_test, mode="full", plot_indexes=plot_indexes)
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"test_full.png")
 
             if testing_mode == "pessimistic" or testing_mode == "both":
-                test_loss = test_model(payload, sequences=self.sequences_test, mode="pessimistic")
+                test_loss = test_model(payload, sequences=self.sequences_test, mode="pessimistic",
+                                       plot_indexes=plot_indexes)
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"test_pessimistic.png")
@@ -174,7 +181,9 @@ class ModelManager:
                 print("Test Params")
                 print(session_payload.test_params)
 
-                test_loss = test_model(session_payload, sequences=self.sequences_test)
+                plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], 12)
+                test_loss = test_model(session_payload, sequences=self.sequences_test, plot_indexes=plot_indexes)
+
                 plt.subplots_adjust(top=0.95)
                 plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
                 save_plot(f"preds.png")

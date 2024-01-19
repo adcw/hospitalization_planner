@@ -15,13 +15,15 @@ class RegressionStratKFold(StratifiedKFold, metaclass=ABCMeta):
         self.strat_col_indx = strat_col_index
         self.n_clusters = n_clusters
 
-        self._features = None
+        self.features = None
+        self.clusters = None
 
         super().__init__(**args)
 
     def split(self, X, y=None, groups=None):
         clusters, features = reg_classification(X, strat_col_indx=self.strat_col_indx, n_clusters=self.n_clusters)
-        self._features = features
+        self.features = features
+        self.clusters = clusters
 
         # scatter3d(features, axe_titles=('a', 'b', 'std'), colors=clusters)
 

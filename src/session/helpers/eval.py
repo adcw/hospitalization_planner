@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
+from src.model_selection.stratified_sampling import stratified_sampling
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload
@@ -57,7 +58,8 @@ def eval_model(
         model_payload.model = model
 
         # Perform test
-        test_loss = test_model(model_payload, val_sequences, plot=True)
+        plot_indexes = stratified_sampling(kf.clusters[val_index], 12)
+        test_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
         plt.subplots_adjust(top=0.95)
         plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/preds.png")

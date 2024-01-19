@@ -11,19 +11,18 @@ from src.visualization.predictions import PredictionData, plot_sequences_with_pr
 def test_model(
         session_payload: SessionPayload,
         sequences: list[pd.DataFrame],
+        plot_indexes: Optional[list[int]] = None,
         limit: Optional[int] = None,
-        offset: int = 0,
 
         max_per_sequence: Optional[int] = None,
         plot: bool = True,
-        mode: str = "both"
+        mode: str = "full"
 ):
     """
 
     :param session_payload:
     :param sequences:
     :param limit:
-    :param offset:
     :param max_per_sequence:
     :param plot:
     :return: Average MAE loss
@@ -35,8 +34,7 @@ def test_model(
     loss_sum = 0
     loss_calc_count = 0
 
-    for seq in tqdm(sequences[offset:], desc="Analysing test cases"):
-
+    for seq_i, seq in tqdm(enumerate(sequences), desc="Analysing test cases"):
         target_col = seq[session_payload.main_params.cols_predict]
 
         if mode == "full":
@@ -56,6 +54,7 @@ def test_model(
             continue
 
         predictions: List[Tuple[int, np.iterable]] = []
+        plot_this_seq = plot_indexes is None or seq_i in plot_indexes
 
         for point in points:
             cnt += 1
@@ -81,15 +80,15 @@ def test_model(
             loss_calc_count += 1
 
             # Save plot data
-            predictions.append((point, y_pred))
+            if plot and plot_this_seq:
+                predictions.append((point, y_pred))
 
             if limit is not None and cnt >= limit:
                 end = True
                 break
 
-        pred_data = PredictionData(target_col.values, predictions)
-
-        if plot:
+        if plot and len(predictions) > 0:
+            pred_data = PredictionData(target_col.values, predictions)
             plot_data.append(pred_data)
 
         if end:

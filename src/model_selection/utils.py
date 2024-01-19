@@ -50,9 +50,14 @@ def stratify_classes(classes, test_size=0.2, random_state=None):
         label_indices = np.where(classes == label)[0]
 
         if label_indices.shape[0] == 1:
-            label_indices = np.concatenate([label_indices, label_indices])
+            train_indices.extend(label_indices)
+            continue
 
-        train_idx, test_idx = train_test_split(label_indices, test_size=test_size, random_state=random_state)
+        train_size = int((1 - test_size) * label_indices.shape[0])
+        train_idx, test_idx = train_test_split(label_indices,
+                                               train_size=train_size,
+                                               test_size=label_indices.shape[0] - train_size,
+                                               random_state=random_state)
         train_indices.extend(train_idx)
         test_indices.extend(test_idx)
 
@@ -60,8 +65,10 @@ def stratify_classes(classes, test_size=0.2, random_state=None):
 
 
 if __name__ == '__main__':
-    _X = [10, 20, 30, 40, 50, 60, 70, 80]
-    _y = [0, 0, 1, 1, 1, 1, 2, 2]
+    _y = [0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 5, 5]
 
-    _train_indices, _test_indices = stratify_classes(_y, test_size=0.5)
+    _train_indices, _test_indices = stratify_classes(_y, test_size=0.6)
+    print(f"Train labels: {[_y[i] for i in _train_indices]}")
+    print(f"Test labels: {[_y[i] for i in _test_indices]}")
+    print(f"Test size = {len(_test_indices) / len(_y)}")
     pass
