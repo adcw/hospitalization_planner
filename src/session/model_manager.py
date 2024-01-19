@@ -100,8 +100,33 @@ class ModelManager:
             self.sequences[:limit], test_size=self.test_perc,
             n_clusters=5)
         self.splitter = splitter
-
         # splitter.plot_split(title="Train and test split", axe_titles=['a', 'b', 'std'])
+
+    def _test_and_save_results(self, max_plots: int = 16):
+        testing_mode = self.session_payload.test_params.mode.lower()
+        plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
+
+        if testing_mode in ["full", "both"]:
+            test_loss = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
+                                   plot_indexes=plot_indexes, max_plots=max_plots)
+            plt.subplots_adjust(top=0.95)
+            plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+            save_plot(f"test_full.png")
+
+        if testing_mode in ["pessimistic", "both"]:
+            test_loss = test_model(self.session_payload, sequences=self.sequences_test, mode="pessimistic",
+                                   plot_indexes=plot_indexes, max_plots=max_plots)
+            plt.subplots_adjust(top=0.95)
+            plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+            save_plot(f"test_pessimistic.png")
+
+    @staticmethod
+    def _draw_and_save_losses(train_mae_losses, val_mae_losses, filename):
+        plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]}")
+        plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]}")
+        plt.legend()
+        plt.title("MAE Losses")
+        save_plot(filename)
 
     def start(self):
         mode = prompt_mode()
@@ -120,11 +145,7 @@ class ModelManager:
             trained_model, (train_mae_losses, val_mae_losses) = train_model(payload=self.session_payload,
                                                                             sequences=self.sequences_train)
 
-            plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]}")
-            plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]}")
-            plt.legend()
-            plt.title("MAE Losses")
-            save_plot(f"mae_losses.png")
+            self._draw_and_save_losses(train_mae_losses, val_mae_losses, f"mae_losses.png")
 
             payload = SessionPayload(model=trained_model,
                                      main_params=self.session_payload.main_params,
@@ -132,31 +153,14 @@ class ModelManager:
                                      eval_params=self.session_payload.eval_params,
                                      test_params=self.session_payload.test_params)
 
-            testing_mode = payload.test_params.mode
-
-            max_plots = 16
-            plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
-
-            if testing_mode == "full" or testing_mode == "both":
-                test_loss = test_model(payload, sequences=self.sequences_test, mode="full", plot_indexes=plot_indexes,
-                                       max_plots=max_plots)
-                plt.subplots_adjust(top=0.95)
-                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
-                save_plot(f"test_full.png")
-
-            if testing_mode == "pessimistic" or testing_mode == "both":
-                test_loss = test_model(payload, sequences=self.sequences_test, mode="pessimistic",
-                                       plot_indexes=plot_indexes, max_plots=max_plots)
-                plt.subplots_adjust(top=0.95)
-                plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
-                save_plot(f"test_pessimistic.png")
+            self.session_payload = payload
+            self._test_and_save_results()
 
             if model_name:
                 payload = deepcopy(self.session_payload)
                 payload.model = trained_model
 
-                if not os.path.exists(train_dir):
-                    os.makedirs(train_dir)
+                os.makedirs(train_dir, exist_ok=True)
 
                 with open(f"{train_dir}/model.pkl", "wb+") as file:
                     dump(payload, file)
@@ -177,30 +181,14 @@ class ModelManager:
             with open(f"{self.session_path}/{model_name}/model.pkl", "rb") as file:
                 session_payload: SessionPayload = load(file)
                 session_payload.test_params = self.session_payload.test_params
+                self.session_payload = session_payload
 
                 print("Main Params:")
                 print(session_payload.main_params)
                 print("Test Params")
                 print(session_payload.test_params)
 
-                max_plots = 16
-                testing_mode = session_payload.test_params.mode
-                plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
-
-                if testing_mode == "full" or testing_mode == "both":
-                    test_loss = test_model(session_payload, sequences=self.sequences_test, mode="full",
-                                           plot_indexes=plot_indexes,
-                                           max_plots=max_plots)
-                    plt.subplots_adjust(top=0.95)
-                    plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
-                    save_plot(f"test_full.png")
-
-                if testing_mode == "pessimistic" or testing_mode == "both":
-                    test_loss = test_model(session_payload, sequences=self.sequences_test, mode="pessimistic",
-                                           plot_indexes=plot_indexes, max_plots=max_plots)
-                    plt.subplots_adjust(top=0.95)
-                    plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
-                    save_plot(f"test_pessimistic.png")
+                self._test_and_save_results()
 
         elif mode == "eval":
             eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
