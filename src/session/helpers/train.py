@@ -14,10 +14,10 @@ def train_model(
     #                   )
     # model.train(sequences=sequences, params=payload.train_params)
 
-    model = WindowModel(params=payload.model_params,
+    model = WindowModel(main_params=payload.main_params,
                         n_attr_in=sequences[0].shape[1],
                         window_size=12
                         )
-    model.train(sequences=sequences, params=payload.train_params)
+    train_mae_losses, val_mae_losses = model.train(sequences=sequences, params=payload.train_params)
 
-    return model
+    return model, (train_mae_losses, val_mae_losses)

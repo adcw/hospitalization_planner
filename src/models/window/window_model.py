@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
-from src.config.dataclassess import StepModelParams, TrainParams, WindowModelParams
+from src.config.dataclassess import TrainParams, MainParams
 from src.models.utils import dfs2tensors
 from src.models.window.forward import forward_sequences, pad_sequences
 from src.nn.archs.window_lstm import WindowedConvLSTM
@@ -18,24 +18,45 @@ from torch.functional import F
 
 class WindowModel:
     def __init__(self,
-                 params: WindowModelParams,
+                 main_params: MainParams,
                  n_attr_in: int,
                  window_size: int = 9,
                  ):
         self.n_attr_in = n_attr_in
-        self.n_attr_out = len(params.cols_predict) if params.cols_predict is not None else n_attr_in
-        self.model_params = params
+        self.n_attr_out = len(main_params.cols_predict) if main_params.cols_predict is not None else n_attr_in
+        self.main_params = main_params
 
+        """
+            net_params:
+            device: 'cuda:0'
+            save_path: 'models'
+        
+            conv_layer_data:
+              - channels: 32
+                kernel_size: 3
+                activation: relu
+        
+              - channels: 32
+                kernel_size: 3
+                activation: relu
+        
+              - channels: 32
+                kernel_size: 3
+                activation: relu
+        
+            lstm_hidden_size: 128,
+            #Add learning rate and other session_payload for network
+        """
         self.model = WindowedConvLSTM(
-            output_size=self.n_attr_out * params.n_steps_predict,
-            device=params.device,
+            output_size=self.n_attr_out * main_params.n_steps_predict,
+            device=main_params.device,
             n_attr=self.n_attr_in,
 
             # Conv
-            conv_layers_data=params.conv_layer_data,
+            # conv_layers_data=params.conv_layer_data,
 
             # LSTM
-            lstm_hidden_size=params.lstm_hidden_size,
+            # lstm_hidden_size=params.lstm_hidden_size,
             lstm_layers=2,
             lstm_dropout=0.5,
 
@@ -45,7 +66,7 @@ class WindowModel:
             mlp_activation=F.selu
         )
 
-        self.model = self.model.to(self.model_params.device)
+        self.model = self.model.to(self.main_params.device)
 
         self.criterion = None
         self.optimizer = None
@@ -64,15 +85,15 @@ class WindowModel:
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
-        train_losses = []
-        val_losses = []
+        train_mae_losses = []
+        test_mae_losses = []
 
         self.target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
-                                   self.model_params.cols_predict] \
-            if self.model_params.cols_predict is not None else None
+                                   self.main_params.cols_predict] \
+            if self.main_params.cols_predict is not None else None
 
         train_sequences, val_sequences, (self.scaler, split) = dfs2tensors(sequences, val_perc=val_perc,
-                                                                           device=self.model_params.device)
+                                                                           device=self.main_params.device)
 
         # split.plot_split(title="Train and validation data plots", axe_titles=['a', 'b', 'std'])
 
@@ -81,7 +102,7 @@ class WindowModel:
 
             train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
                                                            model=self.model,
-                                                           model_params=self.model_params,
+                                                           main_params=self.main_params,
                                                            optimizer=self.optimizer,
                                                            criterion=self.criterion,
                                                            target_indexes=self.target_col_indexes,
@@ -90,14 +111,14 @@ class WindowModel:
 
             val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
                                                        model=self.model,
-                                                       model_params=self.model_params,
+                                                       main_params=self.main_params,
                                                        optimizer=self.optimizer,
                                                        criterion=self.criterion,
                                                        target_indexes=self.target_col_indexes,
                                                        window_size=self.window_size)
 
-            train_losses.append(train_loss)
-            val_losses.append(val_loss)
+            train_mae_losses.append(mae_train_loss)
+            test_mae_losses.append(mae_val_loss)
 
             print(f"Train loss: {train_loss}, Val loss: {val_loss}")
             print(f"Train MAE: {mae_train_loss}, Val MAE: {mae_val_loss}")
@@ -108,7 +129,7 @@ class WindowModel:
 
         early_stopping.retrieve()
 
-        return train_losses, val_losses
+        return train_mae_losses, test_mae_losses
 
     def data_transform(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
@@ -140,7 +161,7 @@ class WindowModel:
 
         with torch.no_grad():
             # TODO: Calculate the maks
-            t = torch.Tensor(sequence_array).to(self.model_params.device)
+            t = torch.Tensor(sequence_array).to(self.main_params.device)
             t = pad_sequences([t], window_size=self.window_size)[0]
             t = t.expand(1, *t.shape)
 

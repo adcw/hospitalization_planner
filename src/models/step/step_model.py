@@ -7,7 +7,8 @@ import torch
 from sklearn.preprocessing import MinMaxScaler
 from torch import nn, optim
 
-from src.config.parsing import StepModelParams, TrainParams
+from src.config.dataclassess import MainParams
+from src.config.parsing import TrainParams
 from src.models.step.forward import forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
@@ -16,26 +17,22 @@ from src.nn.callbacks.early_stopping import EarlyStopping
 
 class StepModel:
     def __init__(self,
-                 params: StepModelParams,
+                 main_params: MainParams,
                  n_attr_in: int,
                  ):
         """
 
-        :param params: Params read from config file
+        :param main_params: Params read from config file
         """
         self.n_attr_in = n_attr_in
-        self.n_attr_out = len(params.cols_predict) if params.cols_predict is not None else n_attr_in
-        self.model_params = params
+        self.n_attr_out = len(main_params.cols_predict) if main_params.cols_predict is not None else n_attr_in
+        self.main_params = main_params
 
         self.model = StepTimeLSTM(input_size=self.n_attr_in,
-                                  lstm_hidden_size=self.model_params.lstm_hidden_size,
-                                  n_lstm_layers=self.model_params.n_lstm_layers,
-                                  output_size=self.n_attr_out * self.model_params.n_steps_predict,
-                                  device=self.model_params.device,
-                                  fccn_arch=self.model_params.fccn_arch,
-                                  fccn_dropout_p=self.model_params.fccn_dropout_p)
+                                  output_size=self.n_attr_out * self.main_params.n_steps_predict,
+                                  device=self.main_params.device, )
 
-        self.model = self.model.to(self.model_params.device)
+        self.model = self.model.to(self.main_params.device)
 
         self.criterion = None
         self.optimizer = None
@@ -64,12 +61,12 @@ class StepModel:
         val_losses = []
 
         self.target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
-                                   self.model_params.cols_predict] \
-            if self.model_params.cols_predict is not None else None
+                                   self.main_params.cols_predict] \
+            if self.main_params.cols_predict is not None else None
 
         train_sequences, val_sequences, (scaler, split) = dfs2tensors(sequences,
                                                                       val_perc=val_perc,
-                                                                      device=self.model_params.device)
+                                                                      device=self.main_params.device)
 
         # split.plot_split(title="Train and validation sequences")
 
@@ -80,7 +77,7 @@ class StepModel:
             # Forward test data
             train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
                                                            model=self.model,
-                                                           model_params=self.model_params,
+                                                           main_params=self.main_params,
                                                            optimizer=self.optimizer,
                                                            criterion=self.criterion,
                                                            target_indexes=self.target_col_indexes)
@@ -88,7 +85,7 @@ class StepModel:
             # Forward val data
             val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
                                                        model=self.model,
-                                                       model_params=self.model_params,
+                                                       main_params=self.main_params,
                                                        optimizer=self.optimizer,
                                                        criterion=self.criterion,
                                                        target_indexes=self.target_col_indexes)
@@ -148,16 +145,16 @@ class StepModel:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
-                         device=self.model_params.device)
-        c0 = torch.zeros((self.model_params.n_lstm_layers, self.model.lstm_hidden_size),
-                         device=self.model_params.device)
+        h0 = torch.zeros((self.model.lstm_num_layers, self.model.lstm_hidden_size),
+                         device=self.main_params.device)
+        c0 = torch.zeros((self.model.lstm_num_layers, self.model.lstm_hidden_size),
+                         device=self.main_params.device)
 
         out = None
 
         with torch.no_grad():
             for step in sequence_array:
-                step_tensor = torch.Tensor(step).expand((1, -1)).to(self.model_params.device)
+                step_tensor = torch.Tensor(step).expand((1, -1)).to(self.main_params.device)
 
                 out, (hn, cn) = self.model.forward(step_tensor, h0, c0)
 

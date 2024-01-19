@@ -7,6 +7,9 @@ class MAECounter:
         self.counter = 0
 
     def publish(self, true: torch.Tensor, pred: torch.Tensor):
+        true = true.cpu()
+        pred = pred.cpu()
+
         with torch.no_grad():
             mae = torch.mean(abs(true - pred))
 

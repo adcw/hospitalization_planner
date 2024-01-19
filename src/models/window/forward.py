@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from tqdm import tqdm
 
-from src.config.dataclassess import StepModelParams, WindowModelParams
+from src.config.dataclassess import MainParams
 from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.metrics import MAECounter
 
@@ -63,7 +63,7 @@ def forward_sequences(
 
         # TODO: Fill typing
         model: WindowedConvLSTM,
-        model_params: StepModelParams | WindowModelParams,
+        main_params: MainParams,
         optimizer,
         criterion,
 
@@ -78,7 +78,7 @@ def forward_sequences(
     mae_counter = MAECounter()
 
     generator = windows_and_masks_generator(sequences, window_size,
-                                            n_predictions=model_params.n_steps_predict,
+                                            n_predictions=main_params.n_steps_predict,
                                             batch_size=64,
                                             y_columns=target_indexes)
 

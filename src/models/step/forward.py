@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from tqdm import tqdm
 
-from src.config.dataclassess import StepModelParams
+from src.config.dataclassess import MainParams
 from src.nn.callbacks.metrics import MAECounter
 
 
@@ -12,14 +12,14 @@ def forward_sequences(
 
         # TODO: Fill typing
         model,
-        model_params: StepModelParams,
+        main_params: MainParams,
         optimizer,
         criterion,
 
         is_eval: bool = False,
         target_indexes: list[int] | None = None
 ) -> Tuple[float, float]:
-    train_progress = tqdm(sequences, total=sum([len(s) - model_params.n_steps_predict for s in sequences]))
+    train_progress = tqdm(sequences, total=sum([len(s) - main_params.n_steps_predict for s in sequences]))
 
     # Track overall loss
     loss_sum = 0
@@ -37,19 +37,19 @@ def forward_sequences(
         c0 = None
 
         # Iterate over sequence_df
-        for step_i in range(len(seq) - model_params.n_steps_predict):
+        for step_i in range(len(seq) - main_params.n_steps_predict):
 
             # Get input and output data
             input_step: torch.Tensor = seq[step_i].clone()
-            output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + model_params.n_steps_predict].clone()
+            output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + main_params.n_steps_predict].clone()
 
             if target_indexes is not None:
                 output_step = output_step[:, target_indexes]
 
-            input_step = input_step.expand((1, -1)).to(model_params.device)
+            input_step = input_step.expand((1, -1)).to(main_params.device)
 
-            if model_params.n_steps_predict == 1:
-                output_step = output_step.expand((1, -1)).to(model_params.device)
+            if main_params.n_steps_predict == 1:
+                output_step = output_step.expand((1, -1)).to(main_params.device)
 
             if not is_eval:
                 optimizer.zero_grad()
@@ -60,8 +60,8 @@ def forward_sequences(
             else:
                 outputs, (hn, cn) = model(input_step, h0, c0)
 
-            outputs = outputs.view(model_params.n_steps_predict,
-                                   round(outputs.shape[1] / model_params.n_steps_predict))
+            outputs = outputs.view(main_params.n_steps_predict,
+                                   round(outputs.shape[1] / main_params.n_steps_predict))
 
             # Calculate losses
             loss = criterion(outputs, output_step)

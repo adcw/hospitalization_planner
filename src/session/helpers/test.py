@@ -36,10 +36,10 @@ def test_model(
 
     for seq in tqdm(sequences[offset:], desc="Analysing test cases"):
 
-        target_col = seq[session_payload.model_params.cols_predict]
+        target_col = seq[session_payload.main_params.cols_predict]
 
         if session_payload.test_params.mode == "full":
-            points = [i for i in range(2, len(seq - session_payload.model_params.n_steps_predict))]
+            points = [i for i in range(2, len(seq - session_payload.main_params.n_steps_predict))]
         elif session_payload.test_params.mode == "pessimistic":
             diff = np.diff(target_col, axis=0)
             points, _ = np.where(diff != 0)
@@ -61,10 +61,10 @@ def test_model(
 
             x_real = seq[:point]
 
-            y_real = seq[point:point + session_payload.model_params.n_steps_predict] \
+            y_real = seq[point:point + session_payload.main_params.n_steps_predict] \
                          .iloc[:, session_payload.model.target_col_indexes].values
 
-            if y_real.shape[0] != session_payload.model_params.n_steps_predict or x_real.shape[0] == 0:
+            if y_real.shape[0] != session_payload.main_params.n_steps_predict or x_real.shape[0] == 0:
                 continue
 
             y_real_raw = session_payload.model.data_transform(y_real)

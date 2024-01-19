@@ -6,78 +6,21 @@ import torch.nn.functional as F
 
 from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 
-activation_dict = {
-    "relu": F.relu,
-    "sigmoid": F.sigmoid,
-    "selu": F.selu
-}
+SUPPORTED_MODEL_TYPES = ['step', 'window']
 
 
 @dataclass
-class StepModelParams:
-    """
-    Class that contains all the data for step model network architecture
-    """
-    cols_predict: Optional[list[str]] = None
-    n_steps_predict: int = 1
-
-    lstm_hidden_size: int = 64
-    n_lstm_layers: int = 2
-    lstm_dropout: int = 0.2
-
-    fccn_arch: Optional[list[int]] = None
-    fccn_dropout_p: float = 0.15
-    fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
-
-    device: torch.device = 'cpu'
-    save_path: str = 'models'
+class MainParams:
+    model_type: str
+    n_steps_predict: int
+    cols_predict: List[str]
+    device: torch.device
 
     def __repr__(self):
-        return f"{self.device=}\n" \
-               f"{self.lstm_hidden_size=}\n" \
-               f"{self.n_lstm_layers=}\n" \
+        return f"{self.model_type=}\n" \
                f"{self.n_steps_predict=}\n" \
-               f"{self.lstm_dropout=}\n" \
-               f"{self.fccn_arch=}\n" \
-               f"{self.fccn_dropout_p=}\n" \
-               f"{self.fccn_activation=}\n" \
                f"{self.cols_predict=}\n" \
-               f"{self.save_path=}\n"
-
-
-@dataclass
-class WindowModelParams:
-    """
-    Class that contains all the data for window model network architecture
-    """
-    cols_predict: Optional[list[str]] = None
-    n_steps_predict: int = 1
-
-    conv_layer_data: Optional[List[CLD]] = None
-
-    lstm_hidden_size: int = 64
-    n_lstm_layers: int = 2
-    lstm_dropout: int = 0.2
-
-    fccn_arch: Optional[list[int]] = None
-    fccn_dropout_p: float = 0.15
-    fccn_activation: Callable[[torch.Tensor, bool], torch.Tensor] = torch.nn.functional.relu
-
-    device: torch.device = 'cpu'
-    save_path: str = 'models'
-
-    def __repr__(self):
-        return f"{self.device=}\n" \
-               f"{self.conv_layer_data=}\n" \
-               f"{self.lstm_hidden_size=}\n" \
-               f"{self.n_lstm_layers=}\n" \
-               f"{self.n_steps_predict=}\n" \
-               f"{self.lstm_dropout=}\n" \
-               f"{self.fccn_arch=}\n" \
-               f"{self.fccn_dropout_p=}\n" \
-               f"{self.fccn_activation=}\n" \
-               f"{self.cols_predict=}" \
-               f"{self.save_path=}\n"
+               f"{self.device=}\n"
 
 
 @dataclass

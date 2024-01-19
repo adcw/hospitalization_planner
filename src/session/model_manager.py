@@ -82,8 +82,8 @@ class ModelManager:
 
         self.test_perc = test_perc
 
-        model_params, train_params, eval_params, test_params = parse_config(config_path)
-        self.session_payload = SessionPayload(model_params=model_params,
+        main_params, train_params, eval_params, test_params = parse_config(config_path)
+        self.session_payload = SessionPayload(main_params=main_params,
                                               train_params=train_params,
                                               eval_params=eval_params,
                                               test_params=test_params,
@@ -106,18 +106,24 @@ class ModelManager:
             model_name = prompt_model_name()
             train_dir = base_dir(f"{self.session_path}/train_{model_name}_{self.session_id}")
 
-            print("Read model session_payload:")
-            print(self.session_payload.model_params)
-            print("Read train session_payload:")
+            print("Main params:")
+            print(self.session_payload.main_params)
+            print("Train params:")
             print(self.session_payload.train_params)
 
             self._split_sequences(self.session_payload.train_params.sequence_limit)
 
-            trained_model = train_model(payload=self.session_payload,
-                                        sequences=self.sequences_train)
+            trained_model, (train_mae_losses, val_mae_losses) = train_model(payload=self.session_payload,
+                                                                            sequences=self.sequences_train)
+
+            plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]}")
+            plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]}")
+            plt.legend()
+            plt.title("MAE Losses")
+            save_plot(f"mae_losses.png")
 
             payload = SessionPayload(model=trained_model,
-                                     model_params=self.session_payload.model_params,
+                                     main_params=self.session_payload.main_params,
                                      train_params=self.session_payload.train_params,
                                      eval_params=self.session_payload.eval_params,
                                      test_params=self.session_payload.test_params)
@@ -151,12 +157,10 @@ class ModelManager:
                 session_payload: SessionPayload = load(file)
                 session_payload.test_params = self.session_payload.test_params
 
-                print("Model Params:")
-                print(session_payload.model_params)
-                print("Train Params")
-                print(session_payload.train_params)
+                print("Main Params:")
+                print(session_payload.main_params)
                 print("Test Params")
-                print(session_payload.train_params)
+                print(session_payload.test_params)
 
                 test_loss = test_model(session_payload, sequences=self.sequences_test)
                 plt.subplots_adjust(top=0.95)
@@ -167,7 +171,9 @@ class ModelManager:
             eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
             self._split_sequences(self.session_payload.eval_params.sequence_limit)
 
-            print("Read eval session_payload:")
+            print("Main params:")
+            print(self.session_payload.main_params)
+            print("Eval params:")
             print(self.session_payload.eval_params)
 
             eval_model(self.session_payload, self.sequences_train + self.sequences_test)

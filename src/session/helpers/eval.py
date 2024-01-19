@@ -3,15 +3,12 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
 
-from src.config.dataclassess import WindowModelParams, StepModelParams
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload
 from src.session.helpers.test import test_model
-from src.session.helpers.train import train_model
 from src.session.utils.save_plots import save_plot
 
 
@@ -36,12 +33,13 @@ def eval_model(
     for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
 
-        if type(payload.model_params) == WindowModelParams:
-            model = WindowModel(payload.model_params, n_attr_in=sequences[0].shape[1])
-        elif type(payload.model_params) == StepModelParams:
-            model = StepModel(payload.model_params, n_attr_in=sequences[0].shape[1])
+        if payload.main_params.model_type == 'window':
+            model = WindowModel(payload.main_params, n_attr_in=sequences[0].shape[1])
+
+        elif payload.main_params.model_type == 'step':
+            model = StepModel(payload.main_params, n_attr_in=sequences[0].shape[1])
         else:
-            raise TypeError(f"Unknown param type: {type(payload.model_params)}")
+            raise TypeError(f"Unknown model type: {type(payload.main_params.model_type)}")
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]
@@ -73,9 +71,9 @@ def eval_model(
 
         print(f"Mean test loss: {test_loss}")
 
-    plt.plot(split_train_losses, 'o', label="train_loss")
-    plt.plot(split_val_losses, 'o', label="val_loss")
-    plt.plot(split_test_losses, 'o', label="test_loss")
+    plt.plot(split_train_losses, 'o', label=f"train_loss, mean={np.mean(split_train_losses):.4f}")
+    plt.plot(split_val_losses, 'o', label=f"val_loss, mean={np.mean(split_val_losses):.4f}")
+    plt.plot(split_test_losses, 'o', label=f"test_loss, mean={np.mean(split_test_losses):.4f}")
 
     # Adding text labels near data markers
     for i, value in enumerate(split_train_losses):
@@ -88,7 +86,7 @@ def eval_model(
         s = f'{value:.4f}' if value is not None else ""
         plt.text(i, value, s, ha='center', va='bottom')
 
-    plt.title(f"Losses on each fold. Avg test loss = {np.average(split_test_losses)}")
+    plt.title(f"Losses on each fold")
     plt.legend()
     plt.grid(True)
 
