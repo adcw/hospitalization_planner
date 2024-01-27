@@ -2,10 +2,72 @@ from typing import List, Tuple, Optional
 
 import numpy as np
 import pandas as pd
+import torch
 from tqdm import tqdm
 
+from src.models.step.forward import forward_sequences
+from src.models.utils import dfs2tensors
 from src.session.helpers.session_payload import SessionPayload
 from src.visualization.predictions import PredictionData, plot_sequences_with_predictions
+
+
+def test_model_state_optimal(
+        session_payload: SessionPayload,
+        sequences: list[pd.DataFrame],
+        plot_indexes: Optional[list[int]] = None,
+
+        plot: bool = True,
+        max_plots: int = 12,
+):
+    """
+    Perform full test on full sequence with stateful model
+    :return:
+    """
+
+    assert session_payload.main_params.model_type == "step", \
+        "test_model_state_optimal should be used only for stateful model"
+
+    plot_data: List[PredictionData] = []
+    loss_sum = 0
+    loss_calc_count = 0
+
+    scaler = session_payload.model.scaler
+
+    for seq_i, seq in tqdm(enumerate(sequences), desc="Analysing test cases"):
+        target_col = seq[session_payload.main_params.cols_predict]
+        target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
+                              session_payload.main_params.cols_predict] \
+            if session_payload.main_params.cols_predict is not None else None
+
+        plot_this_seq = plot_indexes is None or seq_i in plot_indexes
+
+        seq_raw = scaler.transform(seq.values)
+        seq_raw = torch.Tensor(seq_raw).to(session_payload.main_params.device)
+
+        _, mae_loss, preds = forward_sequences([seq_raw], is_eval=True,
+                                               model=session_payload.model.model,
+                                               main_params=session_payload.main_params,
+                                               optimizer=session_payload.model.optimizer,
+                                               criterion=session_payload.model.criterion,
+                                               target_indexes=target_col_indexes,
+                                               verbose=False)
+
+        loss_sum += mae_loss
+        loss_calc_count += 1
+
+        predictions: List[Tuple[int, np.iterable]] = []
+        if plot and plot_this_seq:
+            # Save plot data
+            for i, j in zip(range(1, len(seq)), preds):
+                predictions.append((i, j[0].cpu().numpy()))
+
+            pred_data = PredictionData(target_col.values, predictions)
+            plot_data.append(pred_data)
+
+    if plot:
+        plot_sequences_with_predictions(plot_data, max_plots=max_plots)
+
+    return loss_sum / loss_calc_count if loss_calc_count != 0 else None
 
 
 def test_model(
@@ -20,6 +82,7 @@ def test_model(
         max_plots: int = 12,
 ):
     """
+    Perform naive testing
 
     :param session_payload:
     :param sequences:
@@ -68,10 +131,9 @@ def test_model(
             if y_real.shape[0] != session_payload.main_params.n_steps_predict or x_real.shape[0] == 0:
                 continue
 
-            y_real_raw = session_payload.model.data_transform(y_real)
-
+            y_real_raw = session_payload.model.transform_y(y_real)
             y_pred_raw = session_payload.model.predict(x_real, return_inv_transformed=False)
-            y_pred = session_payload.model.data_inverse_transform(y_pred_raw)
+            y_pred = session_payload.model.inverse_transform_y(y_pred_raw)
 
             y_pred = y_pred.reshape((y_pred.shape[1], -1))
 

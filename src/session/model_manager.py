@@ -20,7 +20,7 @@ from src.model_selection.stratified_sampling import stratified_sampling
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.session_payload import SessionPayload
-from src.session.helpers.test import test_model
+from src.session.helpers.test import test_model, test_model_state_optimal
 from src.session.helpers.train import train_model
 from src.session.utils.prompts import prompt_mode, choose_model_name, prompt_model_name
 from src.session.utils.save_plots import base_dir, save_plot
@@ -104,11 +104,21 @@ class ModelManager:
 
     def _test_and_save_results(self, max_plots: int = 16):
         testing_mode = self.session_payload.test_params.mode.lower()
+        model_type = self.session_payload.main_params.model_type
+
         plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
 
-        if testing_mode in ["full", "both"]:
+        if model_type == "window" and testing_mode in ["full", "both"]:
             test_loss = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
                                    plot_indexes=plot_indexes, max_plots=max_plots)
+            plt.subplots_adjust(top=0.95)
+            plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
+            save_plot(f"test_full.png")
+
+        # For step model and full testing mode, choose more optimal solution
+        if model_type == "step" and testing_mode in ["full", "both"]:
+            test_loss = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
+                                                 plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")

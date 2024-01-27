@@ -9,7 +9,7 @@ from src.model_selection.stratified_sampling import stratified_sampling
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload
-from src.session.helpers.test import test_model
+from src.session.helpers.test import test_model, test_model_state_optimal
 from src.session.utils.save_plots import save_plot
 
 
@@ -59,7 +59,15 @@ def eval_model(
 
         # Perform test
         plot_indexes = stratified_sampling(kf.clusters[val_index], 12)
-        test_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
+
+        if payload.main_params.model_type == "step":
+            test_loss = test_model_state_optimal(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
+
+        elif payload.main_params.model_type == "window":
+            test_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
+        else:
+            raise ValueError(f"Unsupported model type: {payload.main_params.model_type}")
+
         plt.subplots_adjust(top=0.95)
         plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/preds.png")
