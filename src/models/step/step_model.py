@@ -69,26 +69,24 @@ class StepModel:
                                                                       device=self.main_params.device)
 
         # split.plot_split(title="Train and validation sequences")
-
-        # TODO: Refactor this part to separate functioun
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # Forward test data
-            train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
-                                                           model=self.model,
-                                                           main_params=self.main_params,
-                                                           optimizer=self.optimizer,
-                                                           criterion=self.criterion,
-                                                           target_indexes=self.target_col_indexes)
+            train_loss, mae_train_loss, _ = forward_sequences(train_sequences, is_eval=False,
+                                                              model=self.model,
+                                                              main_params=self.main_params,
+                                                              optimizer=self.optimizer,
+                                                              criterion=self.criterion,
+                                                              target_indexes=self.target_col_indexes)
 
             # Forward val data
-            val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
-                                                       model=self.model,
-                                                       main_params=self.main_params,
-                                                       optimizer=self.optimizer,
-                                                       criterion=self.criterion,
-                                                       target_indexes=self.target_col_indexes)
+            val_loss, mae_val_loss, _ = forward_sequences(val_sequences, is_eval=True,
+                                                          model=self.model,
+                                                          main_params=self.main_params,
+                                                          optimizer=self.optimizer,
+                                                          criterion=self.criterion,
+                                                          target_indexes=self.target_col_indexes)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
@@ -103,7 +101,6 @@ class StepModel:
         early_stopping.retrieve()
         self.scaler = scaler
 
-        # TODO: Save plots to directory
         if plot:
             plt.plot(train_losses, label="Train losses")
             plt.plot(val_losses, label="Val losses")
@@ -111,7 +108,7 @@ class StepModel:
 
         return train_losses, val_losses
 
-    def data_transform(self, data: np.ndarray):
+    def transform_y(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
         data_range_ = self.scaler.data_range_[self.target_col_indexes]
         data_min_ = self.scaler.data_min_[self.target_col_indexes]
@@ -121,7 +118,7 @@ class StepModel:
 
         return transformed
 
-    def data_inverse_transform(self, data: np.ndarray):
+    def inverse_transform_y(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
         inverse_data = (data - min_) / (max_ - min_)
 
@@ -163,4 +160,4 @@ class StepModel:
 
         out = out.to('cpu')
 
-        return self.data_inverse_transform(out) if return_inv_transformed else out
+        return self.inverse_transform_y(out) if return_inv_transformed else out
