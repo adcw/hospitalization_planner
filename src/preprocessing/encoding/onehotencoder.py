@@ -7,7 +7,7 @@ class OneHotEncoder:
     def __init__(self, columns: list[str]):
         """
         Create encoder class.\n
-        **Note**: It can be used to encode and decode any dataframe.
+        It can be used to encode and decode any dataframe.
         The name of columns and their categorical value
         should be the same in both fit_transform and inverse_transform calls.
         """

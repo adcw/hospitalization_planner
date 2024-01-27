@@ -61,7 +61,6 @@ def windows_and_masks_generator(sequences,
 def forward_sequences(
         sequences: list[torch.Tensor],
 
-        # TODO: Fill typing
         model: WindowedConvLSTM,
         main_params: MainParams,
         optimizer,

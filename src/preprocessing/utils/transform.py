@@ -50,7 +50,7 @@ def transform(
 
     processed_df = processed_df.astype(float)
 
-    # TODO: How to chose columns for imputation?
+    # How to choose columns for imputation? Imputation is not used yet though, I am leaving it alone here
     if impute_dict is not None:
         for impute_target, impute_values in impute_dict.items():
             if impute_target not in impute_values:
