@@ -132,8 +132,8 @@ class ModelManager:
 
     @staticmethod
     def _draw_and_save_losses(train_mae_losses, val_mae_losses, filename):
-        plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]}")
-        plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]}")
+        plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]:.4f}")
+        plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]:.4f}")
         plt.legend()
         plt.title("MAE Losses")
         save_plot(filename)
