@@ -20,7 +20,7 @@ class EarlyStopping:
 
             return False
 
-        if val_loss > self.best_score + self.delta:
+        if val_loss >= self.best_score + self.delta:
             self.counter += 1
         else:
             self.best_score = val_loss
