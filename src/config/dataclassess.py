@@ -14,12 +14,15 @@ class MainParams:
     model_type: str
     n_steps_predict: int
     cols_predict: List[str]
+
     device: torch.device
+    cols_predict_training: bool = True
 
     def __repr__(self):
         return f"{self.model_type=}\n" \
                f"{self.n_steps_predict=}\n" \
                f"{self.cols_predict=}\n" \
+               f"{self.cols_predict_training=}\n" \
                f"{self.device=}\n"
 
 

@@ -5,15 +5,16 @@ main:
   model_type: window # step / window
   n_steps_predict: 1 #How many future steps we predict?
   cols_predict: [ "respiration" ] #Null value means we are predicting all fields
+  cols_predict_training: False
   device: 'cuda:0'
 train:
-  es_patience: 7
+  es_patience: 1
   epochs: 200
   sequence_limit: Null # No limit = Null
 eval:
   es_patience: 7
-  epochs: 200
+  epochs: 1
   sequence_limit: Null # No limit = Null
   n_splits: 5
 test:
-  mode: full # full - test at each sequence point, pessimistic - test only at shift points
+  mode: both # full - test at each sequence point, pessimistic - test only at shift points

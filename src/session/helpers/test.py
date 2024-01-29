@@ -98,6 +98,15 @@ def test_model(
     loss_sum = 0
     loss_calc_count = 0
 
+    y_columns = [sequences[0].columns.get_loc(col) for col in session_payload.main_params.cols_predict]
+
+    x_cols = set(range(0, sequences[0].shape[1]))
+
+    if not session_payload.main_params.cols_predict_training:
+        x_cols = x_cols.difference(y_columns)
+
+    x_cols = list(x_cols)
+
     for seq_i, seq in tqdm(enumerate(sequences), desc="Analysing test cases"):
         target_col = seq[session_payload.main_params.cols_predict]
 
@@ -114,16 +123,13 @@ def test_model(
         if max_per_sequence is not None and len(points) > max_per_sequence:
             points = np.random.choice(points, size=max_per_sequence, replace=False)
 
-        # if len(points) == 0:
-        #     continue
-
         predictions: List[Tuple[int, np.iterable]] = []
         plot_this_seq = plot_indexes is None or seq_i in plot_indexes
 
         for point in points:
             cnt += 1
 
-            x_real = seq[:point]
+            x_real = seq.iloc[:point, x_cols]
 
             y_real = seq[point:point + session_payload.main_params.n_steps_predict] \
                          .iloc[:, session_payload.model.target_col_indexes].values

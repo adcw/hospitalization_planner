@@ -24,12 +24,19 @@ def windows_and_masks_generator(sequences,
                                 window_size: int = 10,
                                 batch_size: int = 16,
                                 y_columns: list = None,
+                                y_cols_in_x: bool = False,
                                 n_predictions: int = 1,
-
                                 ):
     windows = []
     ys = []
     seq_lens = [s.shape[0] for s in sequences]
+    n_feats = sequences[0].shape[1]
+    x_cols = set(range(0, n_feats))
+
+    if not y_cols_in_x:
+        x_cols = x_cols.difference(y_columns)
+
+    x_cols = list(x_cols)
 
     def batch():
         nonlocal windows, ys
@@ -45,9 +52,9 @@ def windows_and_masks_generator(sequences,
 
     for seq, seq_len in zip(sequences, seq_lens):
         for i in range(seq_len - n_predictions):
-            windows.append(seq[max(i - window_size + 1, 0): i + 1])
-            ys.append(seq[i + 1:i + 1 + n_predictions, y_columns][0])
+            windows.append(seq[max(i - window_size + 1, 0): i + 1][:, x_cols])
 
+            ys.append(torch.flatten(seq[i + 1:i + 1 + n_predictions, y_columns]))
             if len(windows) == batch_size:
                 yield batch()
                 windows = []

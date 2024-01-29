@@ -15,6 +15,8 @@ from src.nn.callbacks.early_stopping import EarlyStopping
 
 from torch.functional import F
 
+from src.nn.callbacks.schedules import LrSchedule
+
 
 class WindowModel:
     def __init__(self,
@@ -50,7 +52,7 @@ class WindowModel:
         self.model = WindowedConvLSTM(
             output_size=self.n_attr_out * main_params.n_steps_predict,
             device=main_params.device,
-            n_attr=self.n_attr_in,
+            n_attr=self.n_attr_in - 1,
 
             # Conv
             # conv_layers_data=params.conv_layer_data,
@@ -79,11 +81,11 @@ class WindowModel:
     def train(self, params: TrainParams, sequences: list[pd.DataFrame],
               val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
         self.criterion = nn.MSELoss()
-        # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
-        # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001, weight_decay=3e-4, momentum=0.9)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
+
+        lr_schedule = LrSchedule(optimizer=self.optimizer, early_stopping=early_stopping, verbose=2)
 
         train_mae_losses = []
         test_mae_losses = []
@@ -127,6 +129,8 @@ class WindowModel:
                 print("Early stopping")
                 break
 
+            lr_schedule.step()
+
         early_stopping.retrieve()
 
         return train_mae_losses, test_mae_losses
@@ -155,7 +159,11 @@ class WindowModel:
         sequence_array = sequence_df.values
 
         sequence_array = sequence_array[-self.window_size:]
-        sequence_array = self.scaler.transform(sequence_array)
+
+        new_column = np.zeros((sequence_array.shape[0], 1))
+        sequence_array_with_zeros = np.hstack((sequence_array, new_column))
+        sequence_array_transformed = self.scaler.transform(sequence_array_with_zeros)
+        sequence_array = np.delete(sequence_array_transformed, -1, axis=1)
 
         self.model.eval()
 

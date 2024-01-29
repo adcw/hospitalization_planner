@@ -1,9 +1,6 @@
 from typing import Tuple
 
-import torch
-import torch.nn.functional as F
 import yaml
-from src.nn.archs.lazy_mlc import MLConv, ConvLayerData as CLD
 
 from src.config.dataclassess import MainParams, TrainParams, EvalParams, TestParams, SUPPORTED_MODEL_TYPES
 
@@ -32,10 +29,12 @@ def parse_config(yaml_path: str) -> Tuple[MainParams, TrainParams, EvalParams, T
     n_steps_predict = main_params_data['n_steps_predict']
     cols_predict = main_params_data['cols_predict']
     device = main_params_data['device']
+    cols_predict_training = main_params_data['cols_predict_training']
 
     main_params = MainParams(model_type=model_type,
                              n_steps_predict=n_steps_predict,
                              cols_predict=cols_predict,
+                             cols_predict_training=cols_predict_training,
                              device=device)
 
     # Extract training parameters

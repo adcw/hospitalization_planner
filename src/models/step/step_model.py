@@ -13,6 +13,7 @@ from src.models.step.forward import forward_sequences
 from src.models.utils import dfs2tensors
 from src.nn.archs.step_time_lstm import StepTimeLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
+from src.nn.callbacks.schedules import LrSchedule
 
 
 class StepModel:
@@ -52,10 +53,11 @@ class StepModel:
         """
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.001)
         # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
+        lr_schedule = LrSchedule(optimizer=self.optimizer, early_stopping=early_stopping, verbose=2)
 
         train_losses = []
         val_losses = []
@@ -97,6 +99,8 @@ class StepModel:
             if early_stopping(val_loss):
                 print("Early stopping")
                 break
+
+            lr_schedule.step()
 
         early_stopping.retrieve()
         self.scaler = scaler
