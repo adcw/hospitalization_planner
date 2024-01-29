@@ -18,6 +18,7 @@ def test_model_state_optimal(
 
         plot: bool = True,
         max_plots: int = 12,
+        y_cols_in_x: bool = False
 ):
     """
     Perform full test on full sequence with stateful model
@@ -50,6 +51,7 @@ def test_model_state_optimal(
                                                optimizer=session_payload.model.optimizer,
                                                criterion=session_payload.model.criterion,
                                                target_indexes=target_col_indexes,
+                                               y_cols_in_x=y_cols_in_x,
                                                verbose=False)
 
         loss_sum += mae_loss

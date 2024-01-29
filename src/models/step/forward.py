@@ -17,9 +17,18 @@ def forward_sequences(
 
         is_eval: bool = False,
         target_indexes: list[int] | None = None,
+        y_cols_in_x: bool = False,
         verbose: bool = True
 ) -> Tuple[float, float, List[torch.Tensor]]:
     total = sum([len(s) - main_params.n_steps_predict for s in sequences])
+
+    n_feats = sequences[0].shape[1]
+    x_cols = set(range(0, n_feats))
+
+    if not y_cols_in_x:
+        x_cols = x_cols.difference(target_indexes)
+
+    x_cols = list(x_cols)
 
     train_progress = tqdm(sequences, total=total) if verbose else None
 
@@ -43,7 +52,7 @@ def forward_sequences(
         for step_i in range(len(seq) - main_params.n_steps_predict):
 
             # Get input and output data
-            input_step: torch.Tensor = seq[step_i].clone()
+            input_step: torch.Tensor = seq[step_i, x_cols].clone()
             output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + main_params.n_steps_predict].clone()
 
             if target_indexes is not None:

@@ -52,7 +52,8 @@ class WindowModel:
         self.model = WindowedConvLSTM(
             output_size=self.n_attr_out * main_params.n_steps_predict,
             device=main_params.device,
-            n_attr=self.n_attr_in - 1,
+            n_attr=self.n_attr_in if main_params.cols_predict_training else self.n_attr_in - len(
+                main_params.cols_predict),
 
             # Conv
             # conv_layers_data=params.conv_layer_data,
@@ -102,7 +103,8 @@ class WindowModel:
         for epoch in range(params.epochs):
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
-            train_loss, mae_train_loss = forward_sequences(train_sequences, is_eval=False,
+            train_loss, mae_train_loss = forward_sequences(train_sequences,
+                                                           is_eval=False,
                                                            model=self.model,
                                                            main_params=self.main_params,
                                                            optimizer=self.optimizer,
@@ -160,10 +162,14 @@ class WindowModel:
 
         sequence_array = sequence_array[-self.window_size:]
 
-        new_column = np.zeros((sequence_array.shape[0], 1))
-        sequence_array_with_zeros = np.hstack((sequence_array, new_column))
-        sequence_array_transformed = self.scaler.transform(sequence_array_with_zeros)
-        sequence_array = np.delete(sequence_array_transformed, -1, axis=1)
+        if self.main_params.cols_predict_training:
+            sequence_array = self.scaler.transform(sequence_array)
+        else:
+            # NOTE: It doesn't work if we predict other column than respiration
+            new_column = np.zeros((sequence_array.shape[0], 1))
+            sequence_array_with_zeros = np.hstack((sequence_array, new_column))
+            sequence_array_transformed = self.scaler.transform(sequence_array_with_zeros)
+            sequence_array = np.delete(sequence_array_transformed, -1, axis=1)
 
         self.model.eval()
 

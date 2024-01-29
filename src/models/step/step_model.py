@@ -25,11 +25,12 @@ class StepModel:
 
         :param main_params: Params read from config file
         """
-        self.n_attr_in = n_attr_in
         self.n_attr_out = len(main_params.cols_predict) if main_params.cols_predict is not None else n_attr_in
         self.main_params = main_params
 
-        self.model = StepTimeLSTM(input_size=self.n_attr_in,
+        n_attr_in = n_attr_in if main_params.cols_predict_training else n_attr_in - len(main_params.cols_predict)
+
+        self.model = StepTimeLSTM(input_size=n_attr_in,
                                   output_size=self.n_attr_out * self.main_params.n_steps_predict,
                                   device=self.main_params.device, )
 
@@ -80,7 +81,8 @@ class StepModel:
                                                               main_params=self.main_params,
                                                               optimizer=self.optimizer,
                                                               criterion=self.criterion,
-                                                              target_indexes=self.target_col_indexes)
+                                                              target_indexes=self.target_col_indexes,
+                                                              y_cols_in_x=self.main_params.cols_predict_training)
 
             # Forward val data
             val_loss, mae_val_loss, _ = forward_sequences(val_sequences, is_eval=True,
@@ -88,7 +90,8 @@ class StepModel:
                                                           main_params=self.main_params,
                                                           optimizer=self.optimizer,
                                                           criterion=self.criterion,
-                                                          target_indexes=self.target_col_indexes)
+                                                          target_indexes=self.target_col_indexes,
+                                                          y_cols_in_x=self.main_params.cols_predict_training)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
@@ -141,7 +144,14 @@ class StepModel:
         """
         sequence_array = sequence_df.values
 
-        sequence_array = self.scaler.transform(sequence_array)
+        if self.main_params.cols_predict_training:
+            sequence_array = self.scaler.transform(sequence_array)
+        else:
+            # NOTE: It doesn't work if we predict other column than respiration
+            new_column = np.zeros((sequence_array.shape[0], 1))
+            sequence_array_with_zeros = np.hstack((sequence_array, new_column))
+            sequence_array_transformed = self.scaler.transform(sequence_array_with_zeros)
+            sequence_array = np.delete(sequence_array_transformed, -1, axis=1)
 
         self.model.eval()
 

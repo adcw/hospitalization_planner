@@ -86,7 +86,8 @@ def forward_sequences(
     generator = windows_and_masks_generator(sequences, window_size,
                                             n_predictions=main_params.n_steps_predict,
                                             batch_size=64,
-                                            y_columns=target_indexes)
+                                            y_columns=target_indexes,
+                                            y_cols_in_x=main_params.cols_predict_training)
 
     # Select proper mode
     if is_eval:
