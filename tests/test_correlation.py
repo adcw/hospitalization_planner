@@ -38,6 +38,18 @@ adrenalina
 PENICELINA1
 GENERAL_SURFACTANT
 KARBAPENEM
+
+# Rysowanie tabelki
+fig, ax = plt.subplots(figsize=(10, 5))
+table = ax.table(cellText=resp.round(4).values, colLabels=resp.columns, cellLoc='center',
+                 loc='center')  # Dostosuj bbox, aby umieścić tabelę w odpowiednim miejscu
+table.auto_set_font_size(False)
+table.set_fontsize(12)  # Zwiększ rozmiar czcionki
+table.scale(0.6, 1.5)  # Zwiększ skalę, aby komórki były wyższe i węższe
+# Ukryj osie
+ax.axis('off')
+plt.show()
+
 """
 if __name__ == '__main__':
     df = pd.read_csv("../data/input.csv", usecols=COLS)
