@@ -82,7 +82,7 @@ class WindowModel:
     def train(self, params: TrainParams, sequences: list[pd.DataFrame],
               val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
