@@ -25,4 +25,6 @@ class LrSchedule:
         for param_group in self.optimizer.param_groups:
             param_group['lr'] *= self.factor
 
+        self.early_stopping.retrieve()
+
         self.verbose > 0 and print(f"Setting lr to {self.optimizer.param_groups[0]['lr']}")
