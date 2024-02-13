@@ -42,7 +42,7 @@ class StepModel:
         self.scaler: Optional[MinMaxScaler] = None
         self.target_col_indexes = None
 
-    def train(self, params: TrainParams, sequences: list[pd.DataFrame], plot: bool = True,
+    def train(self, params: TrainParams, sequences: list[pd.DataFrame],
               val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
         """
         Train the model
@@ -60,8 +60,8 @@ class StepModel:
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
         lr_schedule = LrSchedule(optimizer=self.optimizer, early_stopping=early_stopping, verbose=2)
 
-        train_losses = []
-        val_losses = []
+        train_abs_losses = []
+        val_abs_losses = []
 
         self.target_col_indexes = [sequences[0].columns.values.tolist().index(col) for col in
                                    self.main_params.cols_predict] \
@@ -76,30 +76,30 @@ class StepModel:
             print(f"Epoch {epoch + 1}/{params.epochs}\n")
 
             # Forward test data
-            train_loss, mae_train_loss, _ = forward_sequences(train_sequences, is_eval=False,
-                                                              model=self.model,
-                                                              main_params=self.main_params,
-                                                              optimizer=self.optimizer,
-                                                              criterion=self.criterion,
-                                                              target_indexes=self.target_col_indexes,
-                                                              y_cols_in_x=self.main_params.cols_predict_training)
+            train_sqrt_loss, train_abs_loss, _ = forward_sequences(train_sequences, is_eval=False,
+                                                                   model=self.model,
+                                                                   main_params=self.main_params,
+                                                                   optimizer=self.optimizer,
+                                                                   criterion=self.criterion,
+                                                                   target_indexes=self.target_col_indexes,
+                                                                   y_cols_in_x=self.main_params.cols_predict_training)
 
             # Forward val data
-            val_loss, mae_val_loss, _ = forward_sequences(val_sequences, is_eval=True,
-                                                          model=self.model,
-                                                          main_params=self.main_params,
-                                                          optimizer=self.optimizer,
-                                                          criterion=self.criterion,
-                                                          target_indexes=self.target_col_indexes,
-                                                          y_cols_in_x=self.main_params.cols_predict_training)
+            val_sqrt_loss, val_abs_loss, _ = forward_sequences(val_sequences, is_eval=True,
+                                                               model=self.model,
+                                                               main_params=self.main_params,
+                                                               optimizer=self.optimizer,
+                                                               criterion=self.criterion,
+                                                               target_indexes=self.target_col_indexes,
+                                                               y_cols_in_x=self.main_params.cols_predict_training)
 
-            train_losses.append(train_loss)
-            val_losses.append(val_loss)
+            train_abs_losses.append(train_abs_loss)
+            val_abs_losses.append(val_abs_loss)
 
-            print(f"Train loss: {train_loss}, Val loss: {val_loss}")
-            print(f"Train MAE: {mae_train_loss}, Val MAE: {mae_val_loss}")
+            print(f"Train loss: {train_sqrt_loss}, Val loss: {val_sqrt_loss}")
+            print(f"Train MAE: {train_abs_loss}, Val MAE: {val_abs_loss}")
 
-            if early_stopping(val_loss):
+            if early_stopping(val_sqrt_loss):
                 print("Early stopping")
                 break
 
@@ -108,12 +108,7 @@ class StepModel:
         early_stopping.retrieve()
         self.scaler = scaler
 
-        if plot:
-            plt.plot(train_losses, label="Train losses")
-            plt.plot(val_losses, label="Val losses")
-            plt.legend()
-
-        return train_losses, val_losses
+        return train_abs_losses, val_abs_losses
 
     def transform_y(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
