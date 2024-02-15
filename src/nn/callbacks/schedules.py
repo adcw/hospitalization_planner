@@ -6,7 +6,7 @@ class LrSchedule:
                  optimizer,
                  early_stopping: EarlyStopping,
                  factor=0.8,
-                 threshold: float = 0.2,
+                 threshold: float = 0.5,
                  verbose: int = 0
                  ):
         self.optimizer = optimizer
