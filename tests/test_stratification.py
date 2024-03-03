@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.session.model_manager import _get_sequences
@@ -6,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from src.visualization.plot3d import scatter3d
+from src.visualization.trajectories import plot_trajectories
 
 CSV_PATH = '../data/input.csv'
 
@@ -59,11 +62,26 @@ def test_train_test_split(sequences, strat_col_indx):
     pass
 
 
+def test_clustering(sequences, strat_col_indx=-1):
+    splitter = RegressionTrainTestSplitter()
+    _, _ = splitter.fit_split(X=sequences, test_size=0.25, n_clusters=7, strat_col_index=strat_col_indx)
+    clusters = splitter._clusters
+
+    grouped_sequences = {class_idx: [] for class_idx in np.unique(clusters)}
+
+    for class_idx, sequence in zip(clusters, sequences):
+        grouped_sequences[class_idx].append(sequence)
+
+    for k, vs in grouped_sequences.items():
+        plot_trajectories([v.iloc[:, -1].values for v in vs[:16]], f"Klasa nr {k}")
+
+
 if __name__ == '__main__':
     _sequences, _ = _get_sequences(CSV_PATH)
     _strat_col_indx = -1
 
-    test_kfold(_sequences, _strat_col_indx)
+    # test_kfold(_sequences, _strat_col_indx)
     # test_train_test_split(_sequences, _strat_col_indx)
+    test_clustering(sequences=_sequences)
 
     pass
