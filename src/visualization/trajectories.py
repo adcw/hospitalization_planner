@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_trajectories(ts: List[np.iterable], title: str = "Trajectories"):
+def plot_trajectories(ts: List[np.ndarray], title: str = "Trajectories"):
     num_subplots = min(len(ts), 6 * 6)
     num_cols = int(np.ceil(np.sqrt(num_subplots)))
     num_rows = int(np.ceil(num_subplots / num_cols))
 
     ts = ts.copy()
 
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(3 * num_rows, 3 * num_cols))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(3 * num_cols, 3 * num_rows))
 
     if len(ts) == 1:
         axs.plot(ts[0])
@@ -20,8 +20,12 @@ def plot_trajectories(ts: List[np.iterable], title: str = "Trajectories"):
             for j in range(num_cols):
                 if len(ts) > 0:
                     data = ts.pop(0)
-                    axs[i, j].plot(data, label=f'Series {i * num_cols + j + 1}')
-                    axs[i, j].legend()
+                    if num_rows == 1 or num_cols == 1:
+                        axs[max(i, j)].plot(data, label=f'Series {i * num_cols + j + 1}')
+                        axs[max(i, j)].legend()
+                    else:
+                        axs[i, j].plot(data, label=f'Series {i * num_cols + j + 1}')
+                        axs[i, j].legend()
                 else:
                     axs[i, j].axis('off')
 
