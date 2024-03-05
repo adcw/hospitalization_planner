@@ -4,7 +4,7 @@ import torch
 
 
 class EarlyStopping:
-    def __init__(self, model: torch.nn.Module, patience: Optional[int] = 5, delta=-0.00001):
+    def __init__(self, model: torch.nn.Module, patience: Optional[int] = 5, delta=-0.0001):
         self.patience = patience
         self.delta = delta
         self.counter = 0
