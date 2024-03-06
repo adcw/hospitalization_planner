@@ -61,7 +61,8 @@ def eval_model(
         plot_indexes = stratified_sampling(kf.clusters[val_index], 12)
 
         if payload.main_params.model_type == "step":
-            test_loss = test_model_state_optimal(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
+            test_loss = test_model_state_optimal(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes,
+                                                 y_cols_in_x=payload.main_params.cols_predict_training)
 
         elif payload.main_params.model_type == "window":
             test_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)

@@ -12,8 +12,7 @@ def train_model(
     if payload.main_params.model_type == "step":
 
         model = StepModel(main_params=payload.main_params,
-                          n_attr_in=sequences[0].shape[1] if payload.main_params.cols_predict_training else
-                          sequences[0].shape[1] - len(payload.main_params.cols_predict)
+                          n_attr_in=sequences[0].shape[1]
                           )
         train_mae_losses, val_mae_losses = model.train(sequences=sequences, params=payload.train_params)
     else:

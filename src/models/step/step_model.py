@@ -28,7 +28,7 @@ class StepModel:
         self.n_attr_out = len(main_params.cols_predict) if main_params.cols_predict is not None else n_attr_in
         self.main_params = main_params
 
-        # n_attr_in = n_attr_in if main_params.cols_predict_training else n_attr_in - len(main_params.cols_predict)
+        n_attr_in = n_attr_in if main_params.cols_predict_training else n_attr_in - len(main_params.cols_predict)
 
         self.model = StepTimeLSTM(input_size=n_attr_in,
                                   output_size=self.n_attr_out * self.main_params.n_steps_predict,
