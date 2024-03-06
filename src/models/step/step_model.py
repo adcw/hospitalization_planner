@@ -54,7 +54,7 @@ class StepModel:
         """
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0001)
         # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
@@ -151,9 +151,9 @@ class StepModel:
         self.model.eval()
 
         # Initialize hidden states
-        h0 = torch.zeros((self.model.lstm_num_layers, self.model.lstm_hidden_size),
+        h0 = torch.zeros((self.model.lstm_num_layers, 1, self.model.lstm_hidden_size),
                          device=self.main_params.device)
-        c0 = torch.zeros((self.model.lstm_num_layers, self.model.lstm_hidden_size),
+        c0 = torch.zeros((self.model.lstm_num_layers, 1, self.model.lstm_hidden_size),
                          device=self.main_params.device)
 
         out = None
@@ -161,6 +161,7 @@ class StepModel:
         with torch.no_grad():
             for step in sequence_array:
                 step_tensor = torch.Tensor(step).expand((1, -1)).to(self.main_params.device)
+                step_tensor = step_tensor.unsqueeze(0)
 
                 out, (hn, cn) = self.model.forward(step_tensor, h0, c0)
 

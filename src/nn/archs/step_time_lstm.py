@@ -66,31 +66,34 @@ class StepTimeLSTM(nn.Module):
         :param c0: Previous c0 hidden state
         :return: Predicted row and hidden states (hn, cn)
         """
+        batch_size = x.shape[0]
 
         if h0 is None:
-            h0 = torch.zeros((self.lstm_num_layers, self.lstm_hidden_size),
+            h0 = torch.zeros((self.lstm_num_layers, batch_size, self.lstm_hidden_size),
                              device=self.device)
+        h0 = h0.contiguous()
 
         if c0 is None:
-            c0 = torch.zeros((self.lstm_num_layers, self.lstm_hidden_size),
+            c0 = torch.zeros((self.lstm_num_layers, batch_size, self.lstm_hidden_size),
                              device=self.device)
+        c0 = c0.contiguous()
 
         self.lstm.flatten_parameters()
 
         lstm_output, (hn, cn) = self.lstm(x, (h0, c0))
 
-        lstm_output = lstm_output.view(1, -1)
+        lstm_output = lstm_output.squeeze(1)
         out = self.output_interpreter(lstm_output)
         out = F.sigmoid(out)
 
-        lstm_memory = torch.cat([h0, c0, hn, cn])
-        lstm_memory = lstm_memory.view(1, -1)
+        lstm_memory: torch.Tensor = torch.cat([h0, c0, hn, cn], dim=2)  # (2, 4, 128)
+        lstm_memory = lstm_memory.permute(1, 0, 2).contiguous().view(batch_size, -1)
 
         lstm_memory_out = self.memory_arranger(lstm_memory)
         lstm_memory_out = F.tanh(lstm_memory_out)
 
-        lstm_memory_out = lstm_memory_out.view(2 * self.lstm_num_layers, self.lstm_hidden_size)
-
-        hn, cn = lstm_memory_out.split(self.lstm_num_layers)
+        hn, cn = torch.chunk(lstm_memory_out, 2, dim=1)
+        hn = hn.reshape(*h0.shape)
+        cn = cn.reshape(*c0.shape)
 
         return out, (hn, cn)

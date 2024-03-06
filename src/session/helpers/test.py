@@ -61,7 +61,7 @@ def test_model_state_optimal(
         if plot and plot_this_seq:
             # Save plot data
             for i, j in zip(range(1, len(seq)), preds):
-                predictions.append((i, j[0].cpu().numpy()))
+                predictions.append((i, j))
 
             pred_data = PredictionData(target_col.values, predictions)
             plot_data.append(pred_data)

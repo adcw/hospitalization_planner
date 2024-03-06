@@ -1,10 +1,46 @@
 from typing import Tuple, List
 
+import numpy as np
 import torch
 from tqdm import tqdm
+from torch.nn.utils.rnn import pack_sequence
 
 from src.config.dataclassess import MainParams
 from src.nn.callbacks.metrics import MAECounter
+
+
+def batch_iter(data, batch_size):
+    """
+    Iterator yielding batches of specified size from data.
+
+    Args:
+    - data: list, array, or any iterable to be batched
+    - batch_size: int, size of each batch
+
+    Yields:
+    - batch: list, batch of specified size from data
+    """
+    for i in range(0, len(data), batch_size):
+        yield data[i:i + batch_size]
+
+
+def pack_and_iter(data: np.iterable):
+    sorted_data = sorted(data, key=lambda x: len(x), reverse=True)
+    packed = pack_sequence(sorted_data)
+
+    start = 0
+    for size in packed.batch_sizes:
+        size = int(size)
+        sl = slice(start, start + size)
+        start += size
+        yield packed.data[sl]
+
+
+def prev_and_curr(iterator):
+    prev = next(iterator)
+    for curr in iter(iterator):
+        yield prev, curr
+        prev = curr
 
 
 def forward_sequences(
@@ -18,7 +54,9 @@ def forward_sequences(
         is_eval: bool = False,
         target_indexes: list[int] | None = None,
         y_cols_in_x: bool = False,
-        verbose: bool = True
+        verbose: bool = True,
+
+        batch_size: int = 32
 ) -> Tuple[float, float, List[torch.Tensor]]:
     total = sum([len(s) - main_params.n_steps_predict for s in sequences])
 
@@ -30,7 +68,7 @@ def forward_sequences(
 
     x_cols = list(x_cols)
 
-    train_progress = tqdm(sequences, total=total) if verbose else None
+    train_progress = tqdm(sequences, total=round(total / batch_size)) if verbose else None
 
     # Track overall loss
     loss_sum = 0
@@ -44,24 +82,26 @@ def forward_sequences(
         model.train()
 
     # Forward all sequences
-    for _, seq in enumerate(sequences):
+    for seq_batch in batch_iter(sequences, batch_size):
         h0 = None
         c0 = None
 
-        # Iterate over sequence_df
-        for step_i in range(len(seq) - main_params.n_steps_predict):
+        for input_step, output_step in prev_and_curr(pack_and_iter(seq_batch)):
 
             # Get input and output data
-            input_step: torch.Tensor = seq[step_i, x_cols].clone()
-            output_step: torch.Tensor = seq[step_i + 1:step_i + 1 + main_params.n_steps_predict].clone()
+            # input_step: torch.Tensor = ...[..., x_cols].clone()
+            # output_step: torch.Tensor = ...[... + 1:... + 1 + main_params.n_steps_predict].clone()
+
+            input_step: torch.Tensor = input_step[:, x_cols].clone().unsqueeze(1).to(main_params.device)
 
             if target_indexes is not None:
-                output_step = output_step[:, target_indexes]
+                output_step = output_step[:, target_indexes].clone().unsqueeze(1).to(main_params.device)
 
-            input_step = input_step.expand((1, -1)).to(main_params.device)
-
-            if main_params.n_steps_predict == 1:
-                output_step = output_step.expand((1, -1)).to(main_params.device)
+            out_size = output_step.size(0)
+            if input_step.size(0) > out_size:
+                input_step = input_step[:out_size, :]
+                c0 = c0[:, :out_size, :].contiguous()
+                h0 = h0[:, :out_size, :].contiguous()
 
             if not is_eval:
                 optimizer.zero_grad()
@@ -72,10 +112,9 @@ def forward_sequences(
             else:
                 outputs, (hn, cn) = model(input_step, h0, c0)
 
-            outputs = outputs.view(main_params.n_steps_predict,
-                                   round(outputs.shape[1] / main_params.n_steps_predict))
+            outputs = outputs.unsqueeze(1)
 
-            preds.append(outputs)
+            preds.append(outputs.flatten().cpu().detach().numpy())
 
             # Calculate losses
             loss = criterion(outputs, output_step)
