@@ -1,3 +1,5 @@
+import math
+
 from src.nn.callbacks.early_stopping import EarlyStopping
 
 
@@ -7,6 +9,7 @@ class LrSchedule:
                  early_stopping: EarlyStopping,
                  factor=0.8,
                  threshold: float = 0.5,
+                 cooldown_factor: float = 0,
                  verbose: int = 0
                  ):
         self.optimizer = optimizer
@@ -15,11 +18,18 @@ class LrSchedule:
         self.threshold = threshold
         self.verbose = verbose
 
+        self.cooldown_threshold = math.floor(cooldown_factor * early_stopping.patience)
+        self.cooldown_counter = 0
+
     def step(self):
         es_progress = float(self.early_stopping.counter) / self.early_stopping.patience
         self.verbose > 1 and print(f"Early stopping progress: {es_progress:.3f}")
-        if es_progress >= self.threshold:
+
+        if es_progress >= self.threshold and self.cooldown_counter >= self.cooldown_threshold:
             self._update()
+            self.cooldown_counter = 0
+        elif self.cooldown_counter < self.cooldown_threshold:
+            self.cooldown_counter += 1
 
     def _update(self):
         for param_group in self.optimizer.param_groups:
