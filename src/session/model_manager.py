@@ -132,9 +132,9 @@ class ModelManager:
             save_plot(f"test_pessimistic.png")
 
     @staticmethod
-    def _draw_and_save_losses(train_mae_losses, val_mae_losses, filename):
-        plt.plot(train_mae_losses, label=f"Train MAE loss = {train_mae_losses[-1]:.4f}")
-        plt.plot(val_mae_losses, label=f"Val MAE loss = {val_mae_losses[-1]:.4f}")
+    def _draw_and_save_losses(train_mae_losses, val_mae_losses, train_final_loss, val_final_loss, filename):
+        plt.plot(train_mae_losses, label=f"Train MAE loss = {train_final_loss:.4f}")
+        plt.plot(val_mae_losses, label=f"Val MAE loss = {val_final_loss:.4f}")
         plt.legend()
         plt.title("MAE Losses")
         save_plot(filename)
@@ -153,10 +153,12 @@ class ModelManager:
 
             self._split_sequences(self.session_payload.train_params.sequence_limit)
 
-            trained_model, (train_mae_losses, val_mae_losses) = train_model(payload=self.session_payload,
-                                                                            sequences=self.sequences_train)
+            trained_model, (train_mae_losses, val_mae_losses, last_train_loss, last_val_loss) = train_model(
+                payload=self.session_payload,
+                sequences=self.sequences_train)
 
-            self._draw_and_save_losses(train_mae_losses, val_mae_losses, f"mae_losses.png")
+            self._draw_and_save_losses(train_mae_losses, val_mae_losses, last_train_loss, last_val_loss,
+                                       f"mae_losses.png")
 
             payload = SessionPayload(model=trained_model,
                                      main_params=self.session_payload.main_params,

@@ -47,7 +47,7 @@ def eval_model(
         val_sequences = [sequences[i] for i in val_index]
 
         # Train on sequences
-        train_losses, val_losses = model.train(train_params, train_sequences)
+        train_losses, val_losses, last_train_loss, last_val_loss = model.train(train_params, train_sequences)
 
         plt.plot(train_losses, label="Train losses")
         plt.plot(val_losses, label="Val losses")
@@ -73,11 +73,8 @@ def eval_model(
         plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/preds.png")
 
-        train_loss = train_losses[-1]
-        val_loss = val_losses[-1]
-
-        split_train_losses.append(train_loss)
-        split_val_losses.append(val_loss)
+        split_train_losses.append(last_train_loss)
+        split_val_losses.append(last_val_loss)
         split_test_losses.append(test_loss)
 
         print(f"Mean test loss: {test_loss}")

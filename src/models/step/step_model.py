@@ -43,7 +43,7 @@ class StepModel:
         self.target_col_indexes = None
 
     def train(self, params: TrainParams, sequences: list[pd.DataFrame],
-              val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
+              val_perc: float = 0.2) -> Tuple[List[float], List[float], float, float]:
         """
         Train the model
 
@@ -99,16 +99,19 @@ class StepModel:
             print(f"Train loss: {train_sqrt_loss}, Val loss: {val_sqrt_loss}")
             print(f"Train MAE: {train_abs_loss}, Val MAE: {val_abs_loss}")
 
-            if early_stopping(val_sqrt_loss):
+            if early_stopping(val_sqrt_loss, other_stats={
+                "mae_train_loss": train_abs_loss,
+                "mae_val_loss": val_abs_loss,
+            }):
                 print("Early stopping")
                 break
 
             lr_schedule.step()
 
-        early_stopping.retrieve()
+        stats = early_stopping.retrieve()
         self.scaler = scaler
 
-        return train_abs_losses, val_abs_losses
+        return train_abs_losses, val_abs_losses, stats['mae_train_loss'], stats['mae_val_loss']
 
     def transform_y(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range

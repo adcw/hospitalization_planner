@@ -80,7 +80,7 @@ class WindowModel:
         self.target_col_indexes = None
 
     def train(self, params: TrainParams, sequences: list[pd.DataFrame],
-              val_perc: float = 0.2) -> Tuple[List[float], List[float]]:
+              val_perc: float = 0.2) -> Tuple[List[float], List[float], float, float]:
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
 
@@ -127,15 +127,18 @@ class WindowModel:
             print(f"Train loss: {train_loss}, Val loss: {val_loss}")
             print(f"Train MAE: {mae_train_loss}, Val MAE: {mae_val_loss}")
 
-            if early_stopping(val_loss):
+            if early_stopping(val_loss, other_stats={
+                "mae_train_loss": mae_train_loss,
+                "mae_val_loss": mae_val_loss,
+            }):
                 print("Early stopping")
                 break
 
             lr_schedule.step()
 
-        early_stopping.retrieve()
+        stats = early_stopping.retrieve()
 
-        return train_mae_losses, test_mae_losses
+        return train_mae_losses, test_mae_losses, stats['mae_train_loss'], stats['mae_val_loss']
 
     def transform_y(self, data: np.ndarray):
         min_, max_ = self.scaler.feature_range
