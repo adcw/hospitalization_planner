@@ -37,7 +37,7 @@ COLS = [
 
     # c.DOBUTAMINA,
     # c.LEVONOR,
-    c.DOPAMINA,
+    # c.DOPAMINA, # ???
     c.ADRENALINA,
     c.PENICELINA1,
     # c.PENICELINA2,
