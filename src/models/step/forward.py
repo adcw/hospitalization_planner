@@ -1,3 +1,5 @@
+import random
+from copy import deepcopy
 from typing import Tuple, List
 
 import numpy as np
@@ -43,6 +45,24 @@ def prev_and_curr(iterator):
         prev = curr
 
 
+def shuffled(array, p: float = 1):
+    p = min(1., max(0., p))
+
+    if p == 0:
+        return array
+
+    num_to_shuffle = int(len(array) * p)
+
+    src_indices = random.sample(range(len(array)), num_to_shuffle)
+    shuffled_indices = random.sample(src_indices, len(src_indices))
+
+    cp = deepcopy(array)
+    for src, dest in zip(src_indices, shuffled_indices):
+        cp[dest] = array[src]
+
+    return cp
+
+
 def forward_sequences(
         sequences: list[torch.Tensor],
 
@@ -56,7 +76,7 @@ def forward_sequences(
         y_cols_in_x: bool = False,
         verbose: bool = True,
 
-        batch_size: int = 32
+        batch_size: int = 16
 ) -> Tuple[float, float, List[torch.Tensor]]:
     total = sum([len(s) - main_params.n_steps_predict for s in sequences])
 
@@ -68,7 +88,7 @@ def forward_sequences(
 
     x_cols = list(x_cols)
 
-    train_progress = tqdm(sequences, total=round(total / batch_size)) if verbose else None
+    train_progress = tqdm(total=round(total / batch_size)) if verbose else None
 
     # Track overall loss
     loss_sum = 0
@@ -87,11 +107,6 @@ def forward_sequences(
         c0 = None
 
         for input_step, output_step in prev_and_curr(pack_and_iter(seq_batch)):
-
-            # Get input and output data
-            # input_step: torch.Tensor = ...[..., x_cols].clone()
-            # output_step: torch.Tensor = ...[... + 1:... + 1 + main_params.n_steps_predict].clone()
-
             input_step: torch.Tensor = input_step[:, x_cols].clone().unsqueeze(1).to(main_params.device)
 
             if target_indexes is not None:
