@@ -30,5 +30,6 @@ def plot_trajectories(ts: List[np.ndarray], title: str = "Trajectories"):
                     axs[i, j].axis('off')
 
     plt.tight_layout()
+    plt.subplots_adjust(top=0.9)
     plt.suptitle(title)
     plt.show()
