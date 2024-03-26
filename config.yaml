@@ -2,17 +2,17 @@
 # basically how to create the next instance of model.
 
 main:
-  model_type: window # step / window
-  n_steps_predict: 1 #How many future steps we predict?
+  model_type: step # step / window
+  n_steps_predict: 1 # How many future steps we predict?
   cols_predict: [ "respiration" ] #Null value means we are predicting all fields
-  cols_predict_training: True
+  cols_predict_training: False
   device: 'cuda:0'
 train:
-  es_patience: 7
+  es_patience: 12
   epochs: 200
   sequence_limit: Null # No limit = Null
 eval:
-  es_patience: 7
+  es_patience: 12
   epochs: 200
   sequence_limit: Null # No limit = Null
   n_splits: 5
