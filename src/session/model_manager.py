@@ -69,7 +69,6 @@ class ModelManager:
     def __init__(self,
                  base_path: str,
                  config_path: str,
-                 test_perc: float = 0.1
                  ):
         """
         :param base_path: Path to store session data, such as plots, configs and models.
@@ -80,8 +79,6 @@ class ModelManager:
         self.config_path = config_path
 
         self.session_id = _generate_session_id()
-
-        self.test_perc = test_perc
 
         main_params, train_params, eval_params, test_params = parse_config(config_path)
         self.session_payload = SessionPayload(main_params=main_params,
@@ -97,7 +94,7 @@ class ModelManager:
     def _split_sequences(self, limit: int = None):
         splitter = RegressionTrainTestSplitter()
         self.sequences_train, self.sequences_test = splitter.fit_split(
-            self.sequences[:limit], test_size=self.test_perc,
+            self.sequences[:limit], test_size=self.session_payload.main_params.test_size,
             n_clusters=5)
         self.splitter = splitter
         # splitter.plot_split(title="Train and test split", axe_titles=['a', 'b', 'std'])
@@ -205,14 +202,14 @@ class ModelManager:
 
         elif mode == "eval":
             eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
-            self._split_sequences(self.session_payload.eval_params.sequence_limit)
+            # self._split_sequences(self.session_payload.eval_params.sequence_limit)
 
             print("Main params:")
             print(self.session_payload.main_params)
             print("Eval params:")
             print(self.session_payload.eval_params)
 
-            eval_model(self.session_payload, self.sequences_train + self.sequences_test)
+            eval_model(self.session_payload, self.sequences)
             shutil.copy(self.config_path, f"{eval_dir}/config.yaml")
             pass
         else:

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
+from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.model_selection.stratified_sampling import stratified_sampling
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
@@ -32,7 +33,7 @@ def eval_model(
     split_test_losses_full = []
     split_test_losses_pessimistic = []
 
-    for split_i, (train_index, val_index) in enumerate(kf.split(sequences)):
+    for split_i, (train_index, test_index) in enumerate(kf.split(sequences)):
         print(f"Training on split number {split_i + 1}")
 
         if payload.main_params.model_type == 'window':
@@ -45,10 +46,12 @@ def eval_model(
 
         # Get train and validation tensors
         train_sequences = [sequences[i] for i in train_index]
-        val_sequences = [sequences[i] for i in val_index]
+        test_sequences = [sequences[i] for i in test_index]
+        train_sequences, val_sequences = RegressionTrainTestSplitter().fit_split(train_sequences,
+                                                                                 test_size=payload.main_params.val_size)
 
         # Train on sequences
-        train_losses, val_losses, last_train_loss, last_val_loss = model.train(train_params, train_sequences)
+        train_losses, val_losses, last_train_loss, last_val_loss = model.train(train_params, val_sequences)
 
         plt.plot(train_losses, label="Train losses")
         plt.plot(val_losses, label="Val losses")
@@ -59,13 +62,13 @@ def eval_model(
         model_payload.model = model
 
         # Perform test
-        plot_indexes = stratified_sampling(kf.clusters[val_index], 12)
+        plot_indexes = stratified_sampling(kf.clusters[test_index], 12)
 
         if payload.main_params.model_type == "step":
-            full_loss = test_model_state_optimal(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes,
+            full_loss = test_model_state_optimal(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes,
                                                  y_cols_in_x=payload.main_params.cols_predict_training)
         elif payload.main_params.model_type == "window":
-            full_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes)
+            full_loss = test_model(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes)
         else:
             raise ValueError(f"Unsupported model type: {payload.main_params.model_type}")
 
@@ -73,7 +76,7 @@ def eval_model(
         plt.suptitle(f"MAE Test loss: {full_loss}", fontsize=20)
         save_plot(f"split_{split_i + 1}/test_full.png")
 
-        pessimistic_loss = test_model(model_payload, val_sequences, plot=True, plot_indexes=plot_indexes,
+        pessimistic_loss = test_model(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes,
                                       mode='pessimistic')
 
         plt.subplots_adjust(top=0.95)

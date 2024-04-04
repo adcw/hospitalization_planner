@@ -82,7 +82,7 @@ class WindowModel:
     def train(self, params: TrainParams, sequences: list[pd.DataFrame],
               val_perc: float = 0.2) -> Tuple[List[float], List[float], float, float]:
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
 
@@ -110,7 +110,8 @@ class WindowModel:
                                                            optimizer=self.optimizer,
                                                            criterion=self.criterion,
                                                            target_indexes=self.target_col_indexes,
-                                                           window_size=self.window_size
+                                                           window_size=self.window_size,
+                                                           batch_size=params.batch_size
                                                            )
 
             val_loss, mae_val_loss = forward_sequences(val_sequences, is_eval=True,
@@ -119,7 +120,8 @@ class WindowModel:
                                                        optimizer=self.optimizer,
                                                        criterion=self.criterion,
                                                        target_indexes=self.target_col_indexes,
-                                                       window_size=self.window_size)
+                                                       window_size=self.window_size,
+                                                       batch_size=params.batch_size)
 
             train_mae_losses.append(mae_train_loss)
             test_mae_losses.append(mae_val_loss)

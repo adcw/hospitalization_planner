@@ -35,7 +35,10 @@ def parse_config(yaml_path: str) -> Tuple[MainParams, TrainParams, EvalParams, T
                              n_steps_predict=n_steps_predict,
                              cols_predict=cols_predict,
                              cols_predict_training=cols_predict_training,
-                             device=device)
+                             device=device,
+
+                             test_size=main_params_data['test_size'],
+                             val_size=main_params_data['val_size'])
 
     # Extract training parameters
     train_params_data = data['train']
@@ -45,7 +48,8 @@ def parse_config(yaml_path: str) -> Tuple[MainParams, TrainParams, EvalParams, T
 
     train_params = TrainParams(es_patience=es_patience,
                                epochs=epochs,
-                               sequence_limit=sequence_limit)
+                               sequence_limit=sequence_limit,
+                               batch_size=train_params_data['batch_size'])
 
     # Extract eval parameters
     eval_params_data = data['eval']
@@ -57,7 +61,8 @@ def parse_config(yaml_path: str) -> Tuple[MainParams, TrainParams, EvalParams, T
     eval_params = EvalParams(es_patience=es_patience,
                              epochs=epochs,
                              sequence_limit=sequence_limit,
-                             n_splits=n_splits)
+                             n_splits=n_splits,
+                             batch_size=eval_params_data['batch_size'])
 
     # Extract test parameters
     test_params_data = data['test']

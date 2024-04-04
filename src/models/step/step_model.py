@@ -54,7 +54,7 @@ class StepModel:
         """
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0001)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
         # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
@@ -82,7 +82,8 @@ class StepModel:
                                                                    optimizer=self.optimizer,
                                                                    criterion=self.criterion,
                                                                    target_indexes=self.target_col_indexes,
-                                                                   y_cols_in_x=self.main_params.cols_predict_training)
+                                                                   y_cols_in_x=self.main_params.cols_predict_training,
+                                                                   batch_size=params.batch_size)
 
             # Forward val data
             val_sqrt_loss, val_abs_loss, _ = forward_sequences(val_sequences, is_eval=True,
@@ -91,7 +92,8 @@ class StepModel:
                                                                optimizer=self.optimizer,
                                                                criterion=self.criterion,
                                                                target_indexes=self.target_col_indexes,
-                                                               y_cols_in_x=self.main_params.cols_predict_training)
+                                                               y_cols_in_x=self.main_params.cols_predict_training,
+                                                               batch_size=params.batch_size)
 
             train_abs_losses.append(train_abs_loss)
             val_abs_losses.append(val_abs_loss)
