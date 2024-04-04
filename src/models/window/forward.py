@@ -75,7 +75,8 @@ def forward_sequences(
 
         is_eval: bool = False,
         target_indexes: list[int] | None = None,
-        window_size: int = 10
+        window_size: int = 10,
+        batch_size = 16
 ) -> Tuple[float, float]:
     # train_progress = tqdm(sequences, total=sum([len(s) - model_params.n_steps_predict for s in sequences]))
 
@@ -85,7 +86,7 @@ def forward_sequences(
 
     generator = windows_and_masks_generator(sequences, window_size,
                                             n_predictions=main_params.n_steps_predict,
-                                            batch_size=64,
+                                            batch_size=batch_size,
                                             y_columns=target_indexes,
                                             y_cols_in_x=main_params.cols_predict_training)
 
