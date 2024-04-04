@@ -1,6 +1,7 @@
 from typing import Optional, List
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from src.model_selection.utils import reg_classification, stratify_classes
 from src.visualization.plot3d import scatter3d
@@ -18,16 +19,14 @@ class RegressionTrainTestSplitter:
                   X: list[np.iterable],
                   test_size: float = 0.1,
                   strat_col_index: int = -1,
-                  n_clusters: int = 5,
-                  random_state=None
+                  n_clusters: int = 5
                   ):
         self._clusters, self._features = reg_classification(X,
                                                             strat_col_indx=strat_col_index,
                                                             n_clusters=n_clusters)
 
         self._train_indices, self._test_indices = stratify_classes(self._clusters,
-                                                                   test_size=test_size,
-                                                                   random_state=random_state)
+                                                                   test_size=test_size)
 
         return [X[i] for i in self._train_indices], [X[i] for i in self._test_indices]
 
