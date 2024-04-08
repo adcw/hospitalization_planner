@@ -54,7 +54,7 @@ class StepModel:
         """
         self.criterion = nn.MSELoss()
         # self.criterion = nn.HuberLoss(reduction='mean', delta=0.125)
-        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0003)
+        self.optimizer = optim.Adam(self.model.parameters(), weight_decay=0.001, lr=0.0001)
         # self.optimizer = optim.SGD(self.model.parameters(), lr=0.001)
 
         early_stopping = EarlyStopping(self.model, patience=params.es_patience)
