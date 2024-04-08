@@ -1,15 +1,8 @@
-import random
-from typing import List, Tuple
-import pandas as pd
-import numpy as np
-from scipy.stats import linregress
-from sklearn.tree import DecisionTreeClassifier, export_text
+from typing import List
 
-from data.chosen_colnames import COLS
-from src.error_analysis.core.tree_utils import print_top_rules
-from src.preprocessing.preprocessor import Preprocessor
-import data.colnames_original as c
-from src.session.model_manager import _get_sequences
+import numpy as np
+import pandas as pd
+from scipy.stats import linregress
 
 
 def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.DataFrame:
@@ -26,6 +19,9 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
     """
 
     new_dataframe = pd.DataFrame()
+
+    if input_cols is None:
+        input_cols = dataframe.columns.tolist()
 
     for col in input_cols:
         # Standard deviation
@@ -64,23 +60,3 @@ def extract_seq_features(sequences: List[pd.DataFrame], input_cols: List[str]) -
     results = [_df_time_features(seq, input_cols) for seq in sequences]
 
     return pd.concat(results)
-
-
-if __name__ == '__main__':
-    seqs, _ = _get_sequences(path="../../data/input.csv")
-
-    feats = extract_seq_features(seqs, input_cols=[c.RESPIRATION])
-
-    dummy_y = [round(random.random()) for row in feats.itertuples(index=False)]
-
-    # Inicjalizuj klasyfikator drzewiasty
-    clf = DecisionTreeClassifier()
-
-    # Dopasuj klasyfikator do danych
-    clf = clf.fit(feats, dummy_y)
-
-    print(export_text(clf))
-
-    print_top_rules(tree=clf, dataframe=feats)
-
-    pass
