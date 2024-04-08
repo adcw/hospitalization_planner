@@ -106,15 +106,15 @@ class ModelManager:
         plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
 
         if model_type == "window" and testing_mode in ["full", "both"]:
-            test_loss = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
-                                   plot_indexes=plot_indexes, max_plots=max_plots)
+            test_loss, losses = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
+                                           plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")
 
         # For step model and full testing mode, choose more optimal solution
         if model_type == "step" and testing_mode in ["full", "both"]:
-            test_loss = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
+            test_loss, losses = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
                                                  plot_indexes=plot_indexes, max_plots=max_plots,
                                                  y_cols_in_x=self.session_payload.main_params.cols_predict_training)
             plt.subplots_adjust(top=0.95)
@@ -122,11 +122,13 @@ class ModelManager:
             save_plot(f"test_full.png")
 
         if testing_mode in ["pessimistic", "both"]:
-            test_loss = test_model(self.session_payload, sequences=self.sequences_test, mode="pessimistic",
-                                   plot_indexes=plot_indexes, max_plots=max_plots)
+            test_loss, _ = test_model(self.session_payload, sequences=self.sequences_test, mode="pessimistic",
+                                           plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_pessimistic.png")
+
+        return losses
 
     @staticmethod
     def _draw_and_save_losses(train_mae_losses, val_mae_losses, train_final_loss, val_final_loss, filename):
@@ -198,7 +200,9 @@ class ModelManager:
                 print("Test Params")
                 print(session_payload.test_params)
 
-                self._test_and_save_results()
+                losses = self._test_and_save_results()
+
+                pass
 
         elif mode == "eval":
             eval_dir = base_dir(f"{self.session_path}/eval_{self.session_id}")
@@ -212,5 +216,6 @@ class ModelManager:
             eval_model(self.session_payload, self.sequences)
             shutil.copy(self.config_path, f"{eval_dir}/config.yaml")
             pass
+
         else:
             raise ValueError(f"Unknown mode: {mode}")

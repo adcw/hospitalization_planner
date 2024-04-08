@@ -29,7 +29,8 @@ def test_model_state_optimal(
         "test_model_state_optimal should be used only for stateful model"
 
     plot_data: List[PredictionData] = []
-    loss_sum = 0
+
+    seq_losses = []
     loss_calc_count = 0
 
     scaler = session_payload.model.scaler
@@ -54,7 +55,7 @@ def test_model_state_optimal(
                                                y_cols_in_x=y_cols_in_x,
                                                verbose=False)
 
-        loss_sum += mae_loss
+        seq_losses.append(float(mae_loss))
         loss_calc_count += 1
 
         predictions: List[Tuple[int, np.iterable]] = []
@@ -69,7 +70,7 @@ def test_model_state_optimal(
     if plot:
         plot_sequences_with_predictions(plot_data, max_plots=max_plots)
 
-    return loss_sum / loss_calc_count if loss_calc_count != 0 else None
+    return sum(seq_losses) / loss_calc_count if loss_calc_count != 0 else None, seq_losses
 
 
 def test_model(
@@ -108,6 +109,7 @@ def test_model(
         x_cols = x_cols.difference(y_columns)
 
     x_cols = list(x_cols)
+    seq_losses = []
 
     for seq_i, seq in tqdm(enumerate(sequences), desc="Analysing test cases"):
         target_col = seq[session_payload.main_params.cols_predict]
@@ -127,6 +129,8 @@ def test_model(
 
         predictions: List[Tuple[int, np.iterable]] = []
         plot_this_seq = plot_indexes is None or seq_i in plot_indexes
+
+        seq_loss = 0
 
         for point in points:
             cnt += 1
@@ -148,6 +152,7 @@ def test_model(
             # Calculate losses
             loss = np.mean(abs(np.array(y_real_raw) - np.array(y_pred_raw)))
             loss_sum += loss
+            seq_loss += loss
             loss_calc_count += 1
 
             # Save plot data
@@ -157,6 +162,8 @@ def test_model(
             if limit is not None and cnt >= limit:
                 end = True
                 break
+
+        seq_losses.append(seq_loss / len(points) if len(points) > 0 else None)
 
         if plot and plot_this_seq > 0:
             pred_data = PredictionData(target_col.values, predictions)
@@ -168,4 +175,4 @@ def test_model(
     if plot:
         plot_sequences_with_predictions(plot_data, max_plots=max_plots)
 
-    return loss_sum / loss_calc_count if loss_calc_count != 0 else None
+    return loss_sum / loss_calc_count if loss_calc_count != 0 else None, seq_losses
