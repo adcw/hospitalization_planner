@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     feats = extract_seq_features(seqs, input_cols=[c.RESPIRATION])
 
-    dummy_y = [row[1] < 0.01 and row[2] < 0.7 for row in feats.itertuples(index=False)]
+    dummy_y = [round(random.random()) for row in feats.itertuples(index=False)]
 
     # Inicjalizuj klasyfikator drzewiasty
     clf = DecisionTreeClassifier()
@@ -81,6 +81,6 @@ if __name__ == '__main__':
 
     print(export_text(clf))
 
-    print_top_rules(tree=clf, feature_names=feats.columns, dataframe=feats)
+    print_top_rules(tree=clf, dataframe=feats)
 
     pass
