@@ -6,6 +6,7 @@ from scipy.stats import linregress
 from sklearn.tree import DecisionTreeClassifier, export_text
 
 from data.chosen_colnames import COLS
+from src.error_analysis.core.tree_utils import print_top_rules
 from src.preprocessing.preprocessor import Preprocessor
 import data.colnames_original as c
 from src.session.model_manager import _get_sequences
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 
     feats = extract_seq_features(seqs, input_cols=[c.RESPIRATION])
 
-    dummy_y = [row.iloc[1] < 0.3 for row in feats]
+    dummy_y = [row[1] < 0.01 and row[2] < 0.7 for row in feats.itertuples(index=False)]
 
     # Inicjalizuj klasyfikator drzewiasty
     clf = DecisionTreeClassifier()
@@ -78,8 +79,8 @@ if __name__ == '__main__':
     # Dopasuj klasyfikator do danych
     clf = clf.fit(feats, dummy_y)
 
-    # Odczytaj reguły decyzyjne
-    tree_rules = export_text(clf)
-    print(tree_rules)
+    print(export_text(clf))
+
+    print_top_rules(tree=clf, feature_names=feats.columns, dataframe=feats)
 
     pass
