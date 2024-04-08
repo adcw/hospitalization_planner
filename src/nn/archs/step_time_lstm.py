@@ -15,11 +15,11 @@ class StepTimeLSTM(nn.Module):
                  # LSTM params
                  n_lstm_layers: int = 2,
                  lstm_hidden_size: int = 128,
-                 lstm_dropout: float = 0.2,
+                 lstm_dropout: float = 0.2, # 0.3
 
                  # FCCN params
                  fccn_arch: list[int] | None = None,
-                 fccn_dropout_p: float = 0.15,
+                 fccn_dropout_p: float = 0.15,  # 0.3
                  fccn_activation=F.selu,
 
                  # Other
