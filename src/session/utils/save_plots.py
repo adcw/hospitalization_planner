@@ -41,3 +41,21 @@ def save_plot(path: str, close: bool = True):
 
     if close:
         plt.close()
+
+
+def save_txt(path: str, txt: str):
+    global _base_dir
+
+    if path is None or path == "":
+        path = "."
+
+    save_path = os.path.join(_base_dir, path)
+    save_path = os.path.normpath(save_path)
+
+    folder_path = "\\".join(save_path.split("\\")[:-1])
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    with open(save_path, "w+") as file:
+        file.write(txt)
