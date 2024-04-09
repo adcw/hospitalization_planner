@@ -1,4 +1,5 @@
 from sklearn.tree import _tree
+from sklearn.metrics import classification_report, f1_score
 import numpy as np
 
 
@@ -92,5 +93,11 @@ def print_top_rules(tree, dataframe, n=5):
     sorted_rules = sorted(supports.items(), key=lambda x: x[1], reverse=True)
     top_rules = sorted_rules[:n] if len(sorted_rules) >= n else sorted_rules
 
+    text = ""
+
     for i, (rule, support) in enumerate(top_rules, start=1):
-        print(f"Top {i} Rule: {rule}, Support: {support:.2f}%")
+        text += f"Top {i} Rule: {rule}, Support: {support:.2f}%\n"
+
+    print(text)
+
+    return text
