@@ -65,8 +65,7 @@ def eval_model(
         plot_indexes = stratified_sampling(kf.clusters[test_index], 12)
 
         if payload.main_params.model_type == "step":
-            full_loss = test_model_state_optimal(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes,
-                                                 y_cols_in_x=payload.main_params.cols_predict_training)
+            full_loss = test_model_state_optimal(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes)
         elif payload.main_params.model_type == "window":
             full_loss, _ = test_model(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes)
         else:
@@ -77,7 +76,7 @@ def eval_model(
         save_plot(f"split_{split_i + 1}/test_full.png")
 
         pessimistic_loss, _ = test_model(model_payload, test_sequences, plot=True, plot_indexes=plot_indexes,
-                                      mode='pessimistic')
+                                         mode='pessimistic')
 
         plt.subplots_adjust(top=0.95)
         plt.suptitle(f"MAE Test loss: {pessimistic_loss}", fontsize=20)

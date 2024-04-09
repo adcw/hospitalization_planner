@@ -107,7 +107,7 @@ class ModelManager:
 
         if model_type == "window" and testing_mode in ["full", "both"]:
             test_loss, losses = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
-                                           plot_indexes=plot_indexes, max_plots=max_plots)
+                                           plot_indexes=plot_indexes, max_plots=max_plots, error_analysis=True)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")
@@ -115,15 +115,16 @@ class ModelManager:
         # For step model and full testing mode, choose more optimal solution
         if model_type == "step" and testing_mode in ["full", "both"]:
             test_loss, losses = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
-                                                 plot_indexes=plot_indexes, max_plots=max_plots,
-                                                 y_cols_in_x=self.session_payload.main_params.cols_predict_training)
+                                                         plot_indexes=plot_indexes, max_plots=max_plots,
+                                                         error_analysis=True,
+                                                         y_cols_in_x=self.session_payload.main_params.cols_predict_training)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")
 
         if testing_mode in ["pessimistic", "both"]:
             test_loss, _ = test_model(self.session_payload, sequences=self.sequences_test, mode="pessimistic",
-                                           plot_indexes=plot_indexes, max_plots=max_plots)
+                                      plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_pessimistic.png")
