@@ -8,7 +8,8 @@ from sklearn.tree import DecisionTreeClassifier, export_text
 import data.colnames_original as c
 from src.error_analysis.core.tree_utils import print_top_rules
 from src.error_analysis.extract import extract_seq_features
-from src.session.utils.save_plots import save_txt
+from src.session.utils.save_plots import save_txt, save_viz
+import dtreeviz
 
 FEAT_COLS = [
     c.FIO2,
@@ -27,16 +28,16 @@ FEAT_COLS = [
     c.AMINA_PRESYJNA,
     c.STERYD,
     c.ANTYBIOTYK,
-    c.RESPIRATION
+    # c.RESPIRATION
 ]
 
 
-def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], accept_percentile: float = 50):
+def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], accept_percentile: float = 80):
     assert len(sequences) == len(
         losses), f"Number of sequences should match number of losses, {len(sequences)=}, {len(losses)=}"
 
     threshold = np.percentile(losses, accept_percentile)
-    low_loss_indices = [i for i, value in enumerate(losses) if value > threshold]
+    low_loss_indices = [i for i, value in enumerate(losses) if value < threshold]
 
     ys = [0 for i in range(len(losses))]
 
@@ -45,9 +46,19 @@ def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], a
 
     features = extract_seq_features(sequences, input_cols=FEAT_COLS)
 
-    clf = DecisionTreeClassifier().fit(features, ys)
-    top_rules = print_top_rules(tree=clf, dataframe=features)
+    clf = DecisionTreeClassifier(max_depth=4).fit(features, ys)
 
+    viz_model = dtreeviz.model(clf,
+                               X_train=features, y_train=pd.Series(ys),
+                               feature_names=features.columns,
+                               target_name="Skuteczność modelu", class_names=["niska", "wysoka"])
+
+    viz = viz_model.view()
+    viz.show()
+
+    save_viz("tree.svg", viz)
+
+    top_rules = print_top_rules(tree=clf, dataframe=features, ys=ys)
     save_txt("top_rules.txt", top_rules)
 
     pass
