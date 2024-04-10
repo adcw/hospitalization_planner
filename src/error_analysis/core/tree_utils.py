@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.tree import _tree
 from sklearn.metrics import classification_report, f1_score
 import numpy as np
@@ -47,56 +48,69 @@ def get_decision_paths(tree, feature_names):
     return rules
 
 
-def calculate_support(dataframe, rule):
+def calculate_support(dataframe: pd.DataFrame, rule: str, real_ys):
     """
-    Calculate the support for a decision rule in a dataframe.
+    Calculate the support and F1-score for a decision rule in a DataFrame.
 
     Parameters:
         dataframe : pd.DataFrame
-            Input dataframe.
+            Input DataFrame.
         rule : str
             Decision rule string.
+        real_ys : array-like
+            True labels.
 
     Returns:
-        float: Support as a percentage.
+        tuple: Support as a percentage and F1-score.
     """
     try:
-        rule = rule.split(" and class")[0]
+        rule, est_class = rule.split(" and class: ")
+        est_class = int(est_class)
+
         mask = dataframe.eval(rule)
+        covered_ys = [y for v, y in zip(mask.values, real_ys) if v]
+
         num_cases = mask.sum()
         support = num_cases / len(dataframe) * 100
-        return support
+
+        precision = covered_ys.count(est_class) / num_cases * 100
+
+        return support, precision
     except Exception as e:
         print(f"Warning: Rule '{rule}' could not be evaluated. Skipping...")
-        return None
+        return None, None
 
 
-def print_top_rules(tree, dataframe, n=5):
+def print_top_rules(tree, dataframe, ys, n=5):
     """
-    Print the top decision rules with their support.
+    Print the top decision rules with their support and F1-score.
 
     Parameters:
         tree : DecisionTreeClassifier
             Trained decision tree.
         dataframe : pd.DataFrame
             Input dataframe.
+        ys : array-like
+            True labels.
         n : int, optional
             Number of top rules to print, by default 5.
     """
     decision_paths = get_decision_paths(tree, dataframe.columns)
 
-    supports = {rule: calculate_support(dataframe, rule) for rule in decision_paths}
+    supports_and_f1 = {rule: calculate_support(dataframe, rule, ys) for rule in decision_paths}
 
     # Remove empty rules
-    supports = {rule: support for rule, support in supports.items() if support is not None}
+    supports_and_f1 = {rule: (s, p) for rule, (s, p) in supports_and_f1.items() if s is not None}
 
-    sorted_rules = sorted(supports.items(), key=lambda x: x[1], reverse=True)
+    sorted_rules = sorted(supports_and_f1.items(), key=lambda x: x[1][0], reverse=True)
     top_rules = sorted_rules[:n] if len(sorted_rules) >= n else sorted_rules
 
     text = ""
 
-    for i, (rule, support) in enumerate(top_rules, start=1):
-        text += f"Top {i} Rule: {rule}, Support: {support:.2f}%\n"
+    for i, (rule, (support, f1)) in enumerate(top_rules, start=1):
+        text += f"Top {i} Rule: {rule}, Support: {support:.2f}%, Precision: {f1:.2f}\n"
+
+    text = text.replace(" and", "\nand").replace("\nTop", "\n\nTop").replace("and class", "\tand class")
 
     print(text)
 
