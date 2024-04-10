@@ -6,7 +6,6 @@ import torch
 from tqdm import tqdm
 
 from src.models.step.forward import forward_sequences
-from src.models.utils import dfs2tensors
 from src.session.helpers.session_payload import SessionPayload
 from src.visualization.predictions import PredictionData, plot_sequences_with_predictions
 
@@ -18,7 +17,6 @@ def test_model_state_optimal(
 
         plot: bool = True,
         max_plots: int = 12,
-        y_cols_in_x: bool = False
 ):
     """
     Perform full test on full sequence with stateful model
@@ -52,7 +50,7 @@ def test_model_state_optimal(
                                                optimizer=session_payload.model.optimizer,
                                                criterion=session_payload.model.criterion,
                                                target_indexes=target_col_indexes,
-                                               y_cols_in_x=y_cols_in_x,
+                                               y_cols_in_x=session_payload.main_params.cols_predict_training,
                                                verbose=False)
 
         seq_losses.append(float(mae_loss))
