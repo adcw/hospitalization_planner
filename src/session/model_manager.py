@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 import data.colnames_original as c
 from data.chosen_colnames import COLS
 from src.config.parsing import parse_config
+from src.error_analysis.analyse import perform_error_analysis
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
 from src.model_selection.stratified_sampling import stratified_sampling
 from src.preprocessing.preprocessor import Preprocessor
@@ -106,18 +107,16 @@ class ModelManager:
         plot_indexes = stratified_sampling(self.splitter._clusters[self.splitter._test_indices], max_plots)
 
         if model_type == "window" and testing_mode in ["full", "both"]:
-            test_loss, losses = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
-                                           plot_indexes=plot_indexes, max_plots=max_plots, error_analysis=True)
+            test_loss, _ = test_model(self.session_payload, sequences=self.sequences_test, mode="full",
+                                      plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")
 
         # For step model and full testing mode, choose more optimal solution
         if model_type == "step" and testing_mode in ["full", "both"]:
-            test_loss, losses = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
-                                                         plot_indexes=plot_indexes, max_plots=max_plots,
-                                                         error_analysis=True,
-                                                         y_cols_in_x=self.session_payload.main_params.cols_predict_training)
+            test_loss, _ = test_model_state_optimal(self.session_payload, sequences=self.sequences_test,
+                                                    plot_indexes=plot_indexes, max_plots=max_plots)
             plt.subplots_adjust(top=0.95)
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_full.png")
@@ -129,7 +128,10 @@ class ModelManager:
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_pessimistic.png")
 
-        return losses
+        _, seq_losses = test_model(self.session_payload, sequences=[*self.sequences_train, *self.sequences_test],
+                                   mode="full", plot=False)
+
+        perform_error_analysis(sequences=[*self.sequences_train, *self.sequences_test], losses=seq_losses)
 
     @staticmethod
     def _draw_and_save_losses(train_mae_losses, val_mae_losses, train_final_loss, val_final_loss, filename):
@@ -201,7 +203,7 @@ class ModelManager:
                 print("Test Params")
                 print(session_payload.test_params)
 
-                losses = self._test_and_save_results()
+                self._test_and_save_results()
 
                 pass
 
