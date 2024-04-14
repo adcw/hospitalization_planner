@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.tree import DecisionTreeClassifier, export_text
 
 import data.colnames_original as c
-from src.error_analysis.core.tree_utils import print_top_rules
+from src.error_analysis.core.tree_utils import top_rules
 from src.error_analysis.extract import extract_seq_features
 from src.session.utils.save_plots import save_txt, save_viz
 import dtreeviz
@@ -28,11 +28,11 @@ FEAT_COLS = [
     c.AMINA_PRESYJNA,
     c.STERYD,
     c.ANTYBIOTYK,
-    # c.RESPIRATION
+    c.RESPIRATION
 ]
 
 
-def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], accept_percentile: float = 80):
+def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], accept_percentile: float = 75):
     assert len(sequences) == len(
         losses), f"Number of sequences should match number of losses, {len(sequences)=}, {len(losses)=}"
 
@@ -54,11 +54,11 @@ def perform_error_analysis(sequences: List[pd.DataFrame], losses: List[float], a
                                target_name="Skuteczność modelu", class_names=["niska", "wysoka"])
 
     viz = viz_model.view()
-    viz.show()
+    # viz.show()
 
     save_viz("tree.svg", viz)
 
-    top_rules = print_top_rules(tree=clf, dataframe=features, ys=ys)
-    save_txt("top_rules.txt", top_rules)
+    # rules = top_rules(tree=clf, dataframe=features, ys=ys)
+    # save_txt("top_rules.txt", rules)
 
     pass
