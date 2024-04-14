@@ -128,8 +128,15 @@ class ModelManager:
             plt.suptitle(f"MAE Test loss: {test_loss}", fontsize=20)
             save_plot(f"test_pessimistic.png")
 
-        _, seq_losses = test_model(self.session_payload, sequences=[*self.sequences_train, *self.sequences_test],
-                                   mode="full", plot=False)
+        if model_type == "window":
+            _, seq_losses = test_model(self.session_payload, sequences=[*self.sequences_train, *self.sequences_test],
+                                       mode="full", plot=False)
+        elif model_type == "step":
+            _, seq_losses = test_model_state_optimal(self.session_payload,
+                                                     sequences=[*self.sequences_train, *self.sequences_test],
+                                                     plot=False)
+        else:
+            raise ValueError(f"Unsuported model type: {model_type}")
 
         perform_error_analysis(sequences=[*self.sequences_train, *self.sequences_test], losses=seq_losses)
 
