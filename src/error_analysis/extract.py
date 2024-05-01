@@ -25,22 +25,23 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
 
     for col in input_cols:
         # Standard deviation
-        std_dev_col = dataframe[col].std()
-        new_dataframe[col + '_std_dev'] = [std_dev_col]
+        # std_dev_col = dataframe[col].std()
+        # new_dataframe[col + '_std_dev'] = [std_dev_col]
 
         # Slope
-        slope_vals = []
         x = np.arange(len(dataframe))
         y = dataframe[col].values
-        slope, _, _, _, _ = linregress(x, y)
-        slope_vals.append(slope)
-        new_dataframe[col + '_slope'] = slope_vals
+        slope, intercept, _, slope_err, _ = linregress(x, y)
+
+        new_dataframe[col + '_slope'] = [slope]
+        new_dataframe[col + '_intercept'] = [intercept]
+        new_dataframe[col + '_slope_err'] = [slope_err]
 
         # Mean
         mean_vals = dataframe[col].mean()
         new_dataframe[col + '_mean'] = [mean_vals]
 
-    new_dataframe['len'] = len(dataframe)
+    # new_dataframe['len'] = len(dataframe)
 
     return new_dataframe
 
