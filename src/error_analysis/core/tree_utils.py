@@ -81,7 +81,7 @@ def calculate_support(dataframe: pd.DataFrame, rule: str, real_ys):
         return None, None
 
 
-def print_top_rules(tree, dataframe, ys, n=5):
+def top_rules(tree, dataframe, ys, n=5):
     """
     Print the top decision rules with their support and F1-score.
 
@@ -111,7 +111,5 @@ def print_top_rules(tree, dataframe, ys, n=5):
         text += f"Top {i} Rule: {rule}, Support: {support:.2f}%, Precision: {f1:.2f}\n"
 
     text = text.replace(" and", "\nand").replace("\nTop", "\n\nTop").replace("and class", "\tand class")
-
-    print(text)
 
     return text
