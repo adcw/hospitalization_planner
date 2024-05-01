@@ -9,58 +9,7 @@ from torch.nn.utils.rnn import pack_sequence
 
 from src.config.dataclassess import MainParams
 from src.nn.callbacks.metrics import MAECounter
-
-
-def batch_iter(data, batch_size):
-    """
-    Iterator yielding batches of specified size from data.
-
-    Args:
-    - data: list, array, or any iterable to be batched
-    - batch_size: int, size of each batch
-
-    Yields:
-    - batch: list, batch of specified size from data
-    """
-    for i in range(0, len(data), batch_size):
-        yield data[i:i + batch_size]
-
-
-def pack_and_iter(data: np.iterable):
-    sorted_data = sorted(data, key=lambda x: len(x), reverse=True)
-    packed = pack_sequence(sorted_data)
-
-    start = 0
-    for size in packed.batch_sizes:
-        size = int(size)
-        sl = slice(start, start + size)
-        start += size
-        yield packed.data[sl]
-
-
-def prev_and_curr(iterator):
-    prev = next(iterator)
-    for curr in iter(iterator):
-        yield prev, curr
-        prev = curr
-
-
-def shuffled(array, p: float = 1):
-    p = min(1., max(0., p))
-
-    if p == 0:
-        return array
-
-    num_to_shuffle = int(len(array) * p)
-
-    src_indices = random.sample(range(len(array)), num_to_shuffle)
-    shuffled_indices = random.sample(src_indices, len(src_indices))
-
-    cp = deepcopy(array)
-    for src, dest in zip(src_indices, shuffled_indices):
-        cp[dest] = array[src]
-
-    return cp
+from src.tools.iterators import prev_and_curr, pack_and_iter, batch_iter
 
 
 def forward_sequences(

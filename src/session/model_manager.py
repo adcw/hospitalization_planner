@@ -27,11 +27,14 @@ from src.session.utils.prompts import prompt_mode, choose_model_name, prompt_mod
 from src.session.utils.save_plots import base_dir, save_plot
 
 CSV_PATH = './data/input.csv'
+import logging
 
 
 def _get_sequences(path: str = CSV_PATH, limit: int = None) -> tuple[list[pd.DataFrame], Preprocessor]:
+    if limit is not None:
+        logging.warning("The limit argument can trim sequences. Use only for dev.")
     # read data
-    whole_df = pd.read_csv(path, dtype=object, usecols=COLS)
+    whole_df = pd.read_csv(path, dtype=object, usecols=COLS, nrows=limit)
 
     # replace literals with values
     whole_df.replace("YES", 1., inplace=True)
