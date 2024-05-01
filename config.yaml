@@ -22,6 +22,6 @@ eval:
   sequence_limit: Null # No limit = Null
   n_splits: 5
 
-  batch_size: 8
+  batch_size: 16
 test:
   mode: both # full - test at each sequence point, pessimistic - test only at shift points
