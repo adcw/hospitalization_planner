@@ -4,7 +4,7 @@ import time
 from copy import deepcopy
 from datetime import datetime
 from pickle import load, dump
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 import pandas as pd
@@ -30,11 +30,15 @@ CSV_PATH = './data/input.csv'
 import logging
 
 
-def _get_sequences(path: str = CSV_PATH, limit: int = None) -> tuple[list[pd.DataFrame], Preprocessor]:
+def _get_sequences(path: str = CSV_PATH, limit: int = None, usecols: Optional[List[str]] = None) -> tuple[
+    list[pd.DataFrame], Preprocessor]:
+    if usecols is None:
+        usecols = COLS
+
     if limit is not None:
         logging.warning("The limit argument can trim sequences. Use only for dev.")
     # read data
-    whole_df = pd.read_csv(path, dtype=object, usecols=COLS, nrows=limit)
+    whole_df = pd.read_csv(path, dtype=object, usecols=usecols, nrows=limit)
 
     # replace literals with values
     whole_df.replace("YES", 1., inplace=True)

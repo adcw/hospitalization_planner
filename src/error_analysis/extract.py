@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
     return new_dataframe
 
 
-def extract_seq_features(sequences: List[pd.DataFrame], input_cols: List[str]) -> pd.DataFrame:
+def extract_seq_features(sequences: List[pd.DataFrame], input_cols: Optional[List[str]] = None) -> pd.DataFrame:
     """
     Extracts time series features from a list of sequences.
 
