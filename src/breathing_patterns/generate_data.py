@@ -56,31 +56,64 @@ def train_test_split(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]
     return seqs_train, seqs_test
 
 
-def generate_data():
-    patter_cluster_cols = [col for col in PATTERN_CLUSTER_COLS if col in COLS]
+def generate_data(csv_path: str,
+                  usecols: List[str],
 
-    sequences, preprocessor = _get_sequences(path=CSV_PATH, limit=None, usecols=COLS)
+                  window_size: int,
+                  stride_rate: float,
+
+                  n_classes: int,
+                  max_tree_depth: int,
+
+                  test_perc: float,
+
+                  pattern_cluster_cols: List[str]
+                  ):
+    """
+    Generuje dane, przeprowadza próbkowanie, skaluje, tworzy okna i klastry oraz wizualizuje reguły klastrów.
+
+    Args:
+        csv_path (str): Ścieżka do pliku CSV zawierającego dane.
+        usecols (List[str]): Lista kolumn do wykorzystania z pliku CSV.
+        window_size (int): Rozmiar okna.
+        stride_rate (float): Współczynnik kroku.
+        n_classes (int): Liczba klastrów do utworzenia.
+        max_tree_depth (int): Maksymalna głębokość drzewa decyzyjnego.
+        test_perc (float): Procent danych przeznaczonych do testów.
+        pattern_cluster_cols (List[str]): Lista kolumn do wykorzystania do tworzenia klastrów.
+
+    Returns:
+        None
+    """
+    sequences, preprocessor = _get_sequences(path=csv_path, limit=None, usecols=usecols)
     sequences_train, sequences_test = train_test_split(random.choices(sequences, k=len(sequences)),
-                                                       stratify_cols=[c.RESPIRATION], test_perc=TEST_PERC)
+                                                       stratify_cols=[c.RESPIRATION], test_perc=test_perc)
 
     sequences_train_scaled, scaler = scale(sequences_train)
 
     # Make windows and cluster them
-    windows = make_windows(sequences_train_scaled, window_size=WINDOW_SIZE,
-                           stride=max(1, round(WINDOW_SIZE * STRIDE_RATE)))
+    windows = make_windows(sequences_train_scaled, window_size=window_size,
+                           stride=max(1, round(window_size * stride_rate)))
 
-    kmed = learn_clusters(windows, n_clusters=N_CLASSES, input_cols=patter_cluster_cols)
+    kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
 
     # Unscale windows and visualize clustering rules with the use of tree
     original_windows = [pd.DataFrame(scaler.inverse_transform(w), columns=w.columns) for w in
                         windows]
 
-    visualize_clustering_rules(original_windows, labels=kmed.labels_, max_tree_depth=MAX_TREE_DEPTH,
-                               input_cols=patter_cluster_cols)
+    visualize_clustering_rules(original_windows, labels=kmed.labels_, max_tree_depth=max_tree_depth,
+                               input_cols=pattern_cluster_cols)
 
 
 if __name__ == '__main__':
     set_seed()
     base_dir("./clustering_runs")
 
-    generate_data()
+    generate_data(csv_path=CSV_PATH,
+                  usecols=COLS,
+                  window_size=WINDOW_SIZE,
+                  stride_rate=STRIDE_RATE,
+                  n_classes=N_CLASSES,
+                  max_tree_depth=MAX_TREE_DEPTH,
+                  test_perc=TEST_PERC,
+                  pattern_cluster_cols=PATTERN_CLUSTER_COLS)
