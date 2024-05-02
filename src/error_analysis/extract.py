@@ -34,7 +34,8 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
         slope, intercept, _, slope_err, _ = linregress(x, y)
 
         new_dataframe[col + '_slope'] = [slope]
-        new_dataframe[col + '_intercept'] = [intercept]
+        new_dataframe[col + '_initial'] = [y[0]]
+        new_dataframe[col + '_final'] = [y[-1]]
         new_dataframe[col + '_slope_err'] = [slope_err]
 
         # Mean
