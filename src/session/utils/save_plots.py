@@ -12,9 +12,11 @@ def base_dir(path: Optional[str] = None):
     :param path: The path to be set
     :return: Current/updated path
     """
+
     global _base_dir
 
     if path is not None:
+        path = os.path.abspath(path)
         _base_dir = path
 
     if _base_dir is None:
