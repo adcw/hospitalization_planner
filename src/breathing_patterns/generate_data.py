@@ -1,13 +1,17 @@
+import logging
 import random
 from typing import List, Optional
 
+import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn_extra.cluster import KMedoids
 
 import data.colnames_original as c
 from data.chosen_colnames import COLS
 from src.breathing_patterns.utils.clustering import learn_clusters, visualize_clustering_rules
-from src.breathing_patterns.utils.windows import make_windows
+from src.breathing_patterns.utils.plot import plot_medoid_data
+from src.breathing_patterns.utils.windows import make_windows, xy_windows_split
 from src.config.seeds import set_seed
 from src.error_analysis.extract import extract_seq_features
 from src.model_selection.stratified_sampling import stratified_sampling
@@ -39,7 +43,7 @@ PATTERN_CLUSTER_COLS = [
 
 def train_test_split(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]], test_perc: float):
     seq_features = extract_seq_features(seqs, input_cols=stratify_cols)
-    kmed_split = KMedoids(n_clusters=min(10, len(seqs)))
+    kmed_split = KMedoids(n_clusters=min(10, len(seqs)), init='k-medoids++')
     kmed_split.fit(seq_features)
 
     test_indices = stratified_sampling(kmed_split.labels_, sample_size=round(test_perc * len(seqs)))
@@ -67,7 +71,8 @@ def generate_data(csv_path: str,
 
                   test_perc: float,
 
-                  pattern_cluster_cols: List[str]
+                  pattern_cluster_cols: List[str],
+                  limit: Optional[int] = None,
                   ):
     """
     Generuje dane, przeprowadza próbkowanie, skaluje, tworzy okna i klastry oraz wizualizuje reguły klastrów.
@@ -85,24 +90,52 @@ def generate_data(csv_path: str,
     Returns:
         None
     """
-    sequences, preprocessor = _get_sequences(path=csv_path, limit=None, usecols=usecols)
+    sequences, preprocessor = _get_sequences(path=csv_path, limit=limit, usecols=usecols)
     sequences_train, sequences_test = train_test_split(random.choices(sequences, k=len(sequences)),
                                                        stratify_cols=[c.RESPIRATION], test_perc=test_perc)
 
     sequences_train_scaled, scaler = scale(sequences_train)
 
     # Make windows and cluster them
+    print("Preparing windows for clustering...")
     windows = make_windows(sequences_train_scaled, window_size=window_size,
                            stride=max(1, round(window_size * stride_rate)))
 
+    print("Performing clustering...")
     kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
 
     # Unscale windows and visualize clustering rules with the use of tree
     original_windows = [pd.DataFrame(scaler.inverse_transform(w), columns=w.columns) for w in
                         windows]
 
-    visualize_clustering_rules(original_windows, labels=kmed.labels_, max_tree_depth=max_tree_depth,
-                               input_cols=pattern_cluster_cols)
+    print("Discovering cluster rules...")
+    original_w_features = visualize_clustering_rules(original_windows, labels=kmed.labels_,
+                                                     max_tree_depth=max_tree_depth,
+                                                     input_cols=pattern_cluster_cols)
+
+    # Show cluster centers
+    plot_data = []
+
+    for i, med_i in enumerate(kmed.medoid_indices_):
+        plot_data.append({
+            'class': i,  # dtype: int
+            'features': original_w_features.iloc[med_i, :],  # dtype: pd.Series
+            'window': original_windows[med_i]  # dtype: pd.DataFrame
+        })
+
+    plot_medoid_data(plot_data, PATTERN_CLUSTER_COLS)
+
+    # Creating windows for training
+    print("Preparing windows for clustering...")
+    windows = make_windows(sequences_train_scaled, window_size=window_size * 2,
+                           stride=max(1, round(window_size * stride_rate)))
+
+    x_windows, y_windows = xy_windows_split(windows, target_len=window_size, min_x_len=int(0.5 * window_size))
+
+    y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
+    ys = kmed.predict(y_window_features)
+
+    pass
 
 
 if __name__ == '__main__':
@@ -116,4 +149,7 @@ if __name__ == '__main__':
                   n_classes=N_CLASSES,
                   max_tree_depth=MAX_TREE_DEPTH,
                   test_perc=TEST_PERC,
-                  pattern_cluster_cols=PATTERN_CLUSTER_COLS)
+                  pattern_cluster_cols=PATTERN_CLUSTER_COLS,
+
+                  limit=None
+                  )

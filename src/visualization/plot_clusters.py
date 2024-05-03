@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
 
-def visualize_clusters(data, labels, centroids=None, title: Optional[str] = 'Visualizing Clusters'):
+def visualize_clusters(data, labels, centroids=None, title: Optional[str] = 'Cluster visualisation'):
     """
     Visualize clusters in a 2D plot.
 
@@ -36,4 +36,3 @@ def visualize_clusters(data, labels, centroids=None, title: Optional[str] = 'Vis
     plt.grid(True)
     plt.colorbar(label='Cluster')
     plt.legend()
-    plt.show()
