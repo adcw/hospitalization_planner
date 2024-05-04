@@ -25,6 +25,8 @@ class WindowedConvLSTM(nn.Module):
                  mlp_dropout: float = 0.2,
                  mlp_activation=F.selu,
 
+                 final_activation=F.sigmoid,
+
                  device='cpu'):
         super(WindowedConvLSTM, self).__init__()
 
@@ -40,6 +42,8 @@ class WindowedConvLSTM(nn.Module):
         self.mlp_arch = mlp_arch or [128, 64, 16]
         self.mlp_dropout = mlp_dropout
         self.mlp_activation = mlp_activation
+
+        self.final_activation = final_activation
 
         self.cldata = conv_layers_data or [
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
@@ -77,7 +81,9 @@ class WindowedConvLSTM(nn.Module):
 
         mlp_in = x_lstm[:, -1, :]
 
-        x_mlp = self.mlp(mlp_in)
-        output = F.sigmoid(x_mlp)
+        output = self.mlp(mlp_in)
+
+        if self.final_activation is not None:
+            output = self.final_activation(output)
 
         return output
