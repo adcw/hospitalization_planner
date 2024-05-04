@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import torch
 from matplotlib import pyplot as plt
 from sklearn_extra.cluster import KMedoids
 
@@ -60,6 +61,29 @@ def train_test_split(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]
             seqs_train.append(seqs[i])
 
     return seqs_train, seqs_test
+
+
+def pad_left(tensor_list, window_size):
+    """
+    Pads tensors in the list with zeros on the left side if their first dimension is shorter than window_size.
+
+    Args:
+    - tensor_list: list of PyTorch tensors
+    - window_size: int, target size for the first dimension of tensors
+
+    Returns:
+    - padded_list: list of PyTorch tensors with the same shape as input tensors but padded on the left side
+    """
+    padded_list = []
+    for tensor in tensor_list:
+        pad_size = window_size - tensor.size(0)
+        if pad_size > 0:
+            pad = torch.zeros((pad_size,) + tensor.size()[1:], dtype=tensor.dtype, device=tensor.device)
+            padded_tensor = torch.cat((pad, tensor), dim=0)
+        else:
+            padded_tensor = tensor
+        padded_list.append(padded_tensor)
+    return padded_list
 
 
 def generate_breathing_dataset(csv_path: str,
@@ -137,7 +161,10 @@ def generate_breathing_dataset(csv_path: str,
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
     ys = kmed.predict(y_window_features)
 
-    ds = BreathingDataset(xs=x_windows, ys=ys)
+    xs = [torch.Tensor(x.values) for x in x_windows]
+    xs = pad_left(xs, window_size=window_size)
+
+    ds = BreathingDataset(xs=xs, ys=ys, window_size=WINDOW_SIZE)
     curr_path = base_dir()
     ds.save(f"{curr_path}/breathing_dataset.pkl")
 
@@ -147,7 +174,7 @@ def generate_breathing_dataset(csv_path: str,
 def get_run_path(path: str):
     abs_path = os.path.abspath(path)
 
-    os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
 
     contents = [os.path.join(abs_path, f) for f in os.listdir(abs_path)]
     run_dirs = [d for d in contents if os.path.isdir(d)]
