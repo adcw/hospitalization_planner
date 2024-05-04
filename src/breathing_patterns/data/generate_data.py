@@ -21,6 +21,7 @@ from src.model_selection.stratified_sampling import stratified_sampling
 from src.session.model_manager import _get_sequences
 from src.session.utils.save_plots import base_dir
 from src.tools.dataframe_scale import scale
+from src.tools.run_utils import get_run_path
 
 CSV_PATH = '../../../data/input.csv'
 WINDOW_SIZE = 10
@@ -159,39 +160,26 @@ def generate_breathing_dataset(csv_path: str,
     x_windows, y_windows = xy_windows_split(windows, target_len=window_size, min_x_len=int(0.5 * window_size))
 
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
-    ys = kmed.predict(y_window_features)
+    ys_classes = kmed.predict(y_window_features)
+
+    x_window_features = extract_seq_features(x_windows, input_cols=pattern_cluster_cols)
+    xs_classes = kmed.predict(x_window_features)
 
     xs = [torch.Tensor(x.values) for x in x_windows]
     xs = pad_left(xs, window_size=window_size)
 
-    ds = BreathingDataset(xs=xs, ys=ys, window_size=WINDOW_SIZE)
+    ds = BreathingDataset(xs=xs,
+                          xs_classes=xs_classes,
+                          ys_classes=ys_classes,
+                          test_sequences=sequences_test,
+                          window_size=WINDOW_SIZE,
+                          kmed=kmed,
+                          scaler=scaler,
+                          )
     curr_path = base_dir()
     ds.save(f"{curr_path}/breathing_dataset.pkl")
 
     pass
-
-
-def get_run_path(path: str):
-    abs_path = os.path.abspath(path)
-
-    os.makedirs(path, exist_ok=True)
-
-    contents = [os.path.join(abs_path, f) for f in os.listdir(abs_path)]
-    run_dirs = [d for d in contents if os.path.isdir(d)]
-
-    curr_index = 1
-    max_index = 0
-    if len(run_dirs) > 0:
-        for r in run_dirs:
-            try:
-                n = int(r.split("\\")[-1].split("_")[-1])
-                if n > max_index:
-                    max_index = n
-            except ValueError:
-                pass
-        curr_index = max_index + 1
-
-    return os.path.join(abs_path, f"run_{curr_index}")
 
 
 if __name__ == '__main__':
