@@ -1,5 +1,6 @@
 import contextlib
-from typing import Optional
+import pickle
+from typing import Optional, Mapping, Any
 
 import numpy as np
 import torch
@@ -14,6 +15,7 @@ from src.nn.archs.lazy_mlc import ConvLayerData as CLD
 from src.nn.archs.window_lstm import WindowedConvLSTM
 from src.nn.callbacks.early_stopping import EarlyStopping
 from src.nn.callbacks.schedules import LrSchedule
+from src.session.utils.save_plots import save_plot, save_txt, base_dir
 from src.tools.iterators import batch_iter
 
 from matplotlib import pyplot as plt
@@ -24,6 +26,8 @@ import seaborn as sns
 class BreathingPatternModel:
     def __init__(self,
                  device: torch.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')):
+        self.n_classes = None
+        self.n_attr = None
         self.device = device
         self.__optimizer = None
         self.__criterion = None
@@ -62,6 +66,31 @@ class BreathingPatternModel:
         avg_loss = total_loss / len(xs)
         return avg_loss
 
+    def __setup_net(self):
+        cldata = [
+            CLD(channels=16, kernel_size=3, activation=nn.SELU),
+            CLD(channels=32, kernel_size=3, activation=nn.SELU),
+            CLD(channels=64, kernel_size=3, activation=nn.SELU),
+        ]
+
+        self.__net = WindowedConvLSTM(n_attr=self.n_attr,
+                                      output_size=self.n_classes,
+                                      conv_layers_data=cldata,
+                                      final_activation=None) \
+            .to(self.device)
+
+    def dump(self, path: str):
+        data = self.n_attr, self.n_classes, self.__net.state_dict()
+
+        with open(path, "wb+") as file:
+            pickle.dump(data, file)
+
+    def load(self, path: str):
+        with open(path, "rb") as file:
+            self.n_attr, self.n_classes, state_dict = pickle.load(file)
+            self.__setup_net()
+            self.__net.load_state_dict(state_dict)
+
     def fit(self,
             dataset: BreathingDataset,
 
@@ -69,20 +98,10 @@ class BreathingPatternModel:
             batch_size: int = 64,
             es_patience: int = 12
             ):
-        n_attr = dataset.xs[0].shape[1]
-        n_classes = len(np.unique(dataset.ys))
+        self.n_attr = dataset.xs[0].shape[1]
+        self.n_classes = len(np.unique(dataset.ys_classes))
 
-        cldata = [
-            CLD(channels=16, kernel_size=3, activation=nn.SELU),
-            CLD(channels=32, kernel_size=3, activation=nn.SELU),
-            CLD(channels=64, kernel_size=3, activation=nn.SELU),
-        ]
-
-        self.__net = WindowedConvLSTM(n_attr=n_attr,
-                                      output_size=n_classes,
-                                      conv_layers_data=cldata,
-                                      final_activation=None) \
-            .to(self.device)
+        self.__setup_net()
 
         self.__criterion = nn.CrossEntropyLoss()
         self.__optimizer = optim.Adam(self.__net.parameters(), weight_decay=0.001, lr=0.001)
@@ -91,8 +110,10 @@ class BreathingPatternModel:
 
         lr_schedule = LrSchedule(optimizer=self.__optimizer, early_stopping=early_stopping, verbose=2)
 
-        xs_train, xs_val, ys_train, ys_val = train_test_split(dataset.xs, dataset.ys, test_size=0.1,
-                                                              stratify=dataset.ys)
+        xs_train, xs_val, ys_train, ys_val = train_test_split(dataset.xs, dataset.ys_classes, test_size=0.1,
+                                                              stratify=dataset.ys_classes)
+
+        print(f"Saving training results to {base_dir()}")
 
         train_losses = []
         val_losses = []
@@ -117,7 +138,7 @@ class BreathingPatternModel:
         plt.plot(train_losses, label="Train losses")
         plt.plot(val_losses, label="Val losses")
         plt.title("Training performance")
-        plt.show()
+        save_plot("losses.png")
 
         self.__net.eval()
         with torch.no_grad():
@@ -129,15 +150,19 @@ class BreathingPatternModel:
             ys_val_np = ys_val_tensor.cpu().numpy()
             ys_pred_np = ys_pred_class.cpu().numpy()
 
-            print(classification_report(ys_val_np, ys_pred_np))
+            save_txt(path='metrics', txt=classification_report(ys_val_np, ys_pred_np))
+
             cm = confusion_matrix(ys_val_np, ys_pred_np)
 
             plt.figure(figsize=(10, 8))
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=range(n_classes),
-                        yticklabels=range(n_classes))
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=range(self.n_classes),
+                        yticklabels=range(self.n_classes))
             plt.xlabel('Predicted labels')
             plt.ylabel('True labels')
             plt.title('Confusion matrix - Validation set')
-            plt.show()
+            save_plot("validation_confusion_matrix.png")
 
+            pass
+
+    def predict(self):
         pass
