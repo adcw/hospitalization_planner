@@ -5,20 +5,29 @@ from typing import Iterable, List, Any, Sized
 import numpy as np
 from torch.nn.utils.rnn import pack_sequence
 
+import numpy as np
 
-def batch_iter(data, batch_size):
+
+def batch_iter(*arrays, batch_size):
     """
-    Iterator yielding batches of specified size from data.
+    Iterator yielding batches of specified size from multiple arrays.
 
     Args:
-    - data: list, array, or any iterable to be batched
+    - *arrays: Multiple arrays to be batched
     - batch_size: int, size of each batch
 
     Yields:
-    - batch: list, batch of specified size from data
+    - batch: tuple, batch of specified size from each array
     """
-    for i in range(0, len(data), batch_size):
-        yield data[i:i + batch_size]
+    # Check if all arrays have the same length
+    lens = [len(arr) for arr in arrays]
+    if not np.all(np.array(lens) == lens[0]):
+        raise ValueError(f"Expected all arrays lengths to be equal, received {lens}")
+
+    # Iterate over the arrays and yield batches
+    for i in range(0, lens[0], batch_size):
+        batches = [data[i:i + batch_size] for data in arrays]
+        yield tuple(batches)
 
 
 def pack_and_iter(data: np.iterable):
