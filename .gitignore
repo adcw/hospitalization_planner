@@ -187,3 +187,6 @@ fabric.properties
 # idea folder, uncomment if you don't need it
  .idea/
 /saved_plots/
+/bp_dataset_creation_runs/
+/bp_train_runs/
+/bp_test_runs/
