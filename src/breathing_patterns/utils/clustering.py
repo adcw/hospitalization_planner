@@ -11,14 +11,19 @@ from src.session.utils.save_plots import save_viz, save_plot
 from src.visualization.plot_clusters import visualize_clusters
 
 
-def learn_clusters(windows: List[pd.DataFrame], n_clusters: int, input_cols: Optional[List[str]] = None):
+def learn_clusters(windows: List[pd.DataFrame],
+                   n_clusters: int,
+                   input_cols: Optional[List[str]] = None,
+                   save_plots: bool = True
+                   ):
     features = extract_seq_features(windows, input_cols=input_cols)
     kmed = KMedoids(n_clusters=n_clusters, init='k-medoids++')
     kmed.fit(features)
 
-    visualize_clusters(features, kmed.labels_, kmed.cluster_centers_)
-    save_plot("clusters.png")
-    plt.show()
+    if save_plots:
+        visualize_clusters(features, kmed.labels_, kmed.cluster_centers_)
+        save_plot("clusters.png")
+        plt.show()
 
     return kmed
 
