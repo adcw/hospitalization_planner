@@ -34,14 +34,14 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
 
         A = np.vstack([x, np.ones(len(x))]).T
 
-        (slope, intercept), slope_err, _, _ = np.linalg.lstsq(A, y, rcond=None)
+        (slope, intercept), _, _, _ = np.linalg.lstsq(A, y, rcond=None)
 
         # slope, intercept, _, slope_err, _ = linregress(x, y)
 
         new_dataframe[col + '_slope'] = [slope]
-        new_dataframe[col + '_initial'] = [y[0]]
-        new_dataframe[col + '_final'] = [y[-1]]
-        new_dataframe[col + '_slope_err'] = slope_err
+        # new_dataframe[col + '_initial'] = [y[0]]
+        # new_dataframe[col + '_final'] = [y[-1]]
+        new_dataframe[col + '_std'] = [np.std(y)]
 
         # Mean
         mean_vals = dataframe[col].mean()

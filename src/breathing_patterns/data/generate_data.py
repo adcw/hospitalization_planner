@@ -24,19 +24,19 @@ WINDOW_SIZE = 10
 STRIDE_RATE = 0.2
 N_CLASSES = 7
 MAX_TREE_DEPTH = 5
-TEST_PERC = 0.1
+TEST_PERC = 0.2
 
 # Columns used to extract breathing patterns
 PATTERN_CLUSTER_COLS = [
     c.PO2,
-    # c.ANTYBIOTYK,
+    c.ANTYBIOTYK,
     c.RTG_RDS,
     # c.RTG_PDA,
     # c.DOPAMINA,
     # c.PTL,
-    # c.STERYD,
+    c.STERYD,
     c.FIO2,
-    c.GENERAL_SURFACTANT,
+    # c.GENERAL_SURFACTANT,
     c.RESPIRATION,
 ]
 
@@ -115,7 +115,7 @@ def generate_breathing_dataset(csv_path: str,
     """
     sequences, preprocessor = _get_sequences(path=csv_path, limit=limit, usecols=usecols)
     sequences_train, sequences_test = train_test_split(random.choices(sequences, k=len(sequences)),
-                                                       stratify_cols=[c.RESPIRATION], test_perc=test_perc)
+                                                       stratify_cols=PATTERN_CLUSTER_COLS, test_perc=test_perc)
 
     sequences_train_scaled, scaler = scale(sequences_train)
 

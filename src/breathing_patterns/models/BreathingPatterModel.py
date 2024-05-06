@@ -1,8 +1,9 @@
 import contextlib
 import pickle
-from typing import Optional, Mapping, Any
+from typing import Optional, Mapping, Any, List
 
 import numpy as np
+import pandas as pd
 import torch
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
@@ -164,5 +165,19 @@ class BreathingPatternModel:
 
             pass
 
-    def predict(self):
+    def predict(self, xs: List[pd.DataFrame]):
+
+        tensor_list = []
+        for x in xs:
+            tensor_list.append(torch.Tensor(x.values))
+
+        x_tens = torch.stack(tensor_list).to(self.device)
+
+        self.__net.eval()
+        with torch.no_grad():
+            results = self.__net.forward(x_tens, None)
+            results = torch.argmax(results, dim=1).cpu().numpy()
+
+        return results
+
         pass

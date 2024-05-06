@@ -3,7 +3,7 @@ from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternM
 from src.session.utils.save_plots import base_dir
 from src.tools.run_utils import get_run_path
 
-DATASET_PATH = "../../bp_dataset_creation_runs/run_1/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_3/breathing_dataset.pkl"
 RUN_PATH = "../../bp_train_runs"
 
 if __name__ == '__main__':
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     bd = BreathingDataset.read(DATASET_PATH)
     model = BreathingPatternModel()
 
-    model.fit(bd, batch_size=16, n_epochs=10)
+    model.fit(bd, batch_size=16, n_epochs=100)
     model.dump(f"{base_dir()}/model.pkl")
 
     pass
