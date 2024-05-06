@@ -1,18 +1,20 @@
-from typing import List
+from typing import List, Optional
 
 import matplotlib
-import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from src.breathing_patterns.data.dataset import BreathingDataset
+from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
 from src.breathing_patterns.utils.clustering import learn_clusters
 from src.config.seeds import set_seed
 from src.error_analysis.extract import extract_seq_features
 from src.model_selection.stratified_sampling import stratified_sampling
-from src.session.utils.save_plots import base_dir
+from src.session.utils.save_plots import base_dir, save_plot
 from src.tools.iterators import windowed
+from src.tools.reports import save_report_and_conf_m
 from src.tools.run_utils import get_run_path
 
 RESPIRATION = 'respiration'
@@ -34,9 +36,9 @@ RESP_COLS = [
 
 DATASET_PATH = "../../bp_dataset_creation_runs/run_3/breathing_dataset.pkl"
 RUN_PATH = "../../bp_test_runs"
-MODEL_PATH = "../../bp_train/run_3/model.pkl"
+MODEL_PATH = "../../bp_train_runs/run_2/model.pkl"
 
-MAX_PLOTS = 5
+MAX_PLOTS = 10
 MIN_X_WINDOW_RATE = 0.8
 STRIDE_RATE = 0.2
 
@@ -44,7 +46,10 @@ STRIDE_RATE = 0.2
 def plot_breathing(
         df: pd.DataFrame,
         ranges: List[List],
-        y_labels_true
+        y_labels_true: List[int],
+        y_labels_pred: List[int],
+        n_classes: int,
+        plot_index: Optional[int] = None
 ):
     stride = ranges[1][0] - ranges[0][0] if len(ranges) > 1 else 1
     w_len = len(ranges[0])
@@ -58,9 +63,9 @@ def plot_breathing(
     for i, r in enumerate(ranges):
         ranges_stairs[i % n_lists].append([r[int(w_len / 2)], r[-1]])
         real_labels_stairs[i % n_lists].append(y_labels_true[i])
-        pred_labels_stairs[i % n_lists].append(1)
+        pred_labels_stairs[i % n_lists].append(y_labels_pred[i])
 
-    n_colors = max(y_labels_true + 1)
+    n_colors = n_classes
     colors = matplotlib.colormaps['viridis'].resampled(n_colors)([x for x in range(n_colors)])
 
     fig, ax = plt.subplots(len(df.columns) + 1, 1, figsize=(10, 14), sharex=True,
@@ -75,14 +80,14 @@ def plot_breathing(
             real_label_color = colors[real_labels_stairs[row_i][rng_i]]
             pred_label_color = colors[pred_labels_stairs[row_i][rng_i]]
 
-            ax[-1].hlines((len(ranges_stairs) - row_i) * 2, xmin=rng[0], xmax=rng[-1], linewidth=5,
+            ax[-1].hlines((len(ranges_stairs) - row_i) * 3, xmin=rng[0], xmax=rng[-1], linewidth=5,
                           color=real_label_color)
-            ax[-1].hlines((len(ranges_stairs) - row_i) * 2 - 1, xmin=rng[0], xmax=rng[-1], linewidth=5,
+            ax[-1].hlines((len(ranges_stairs) - row_i) * 3 - 1, xmin=rng[0], xmax=rng[-1], linewidth=5,
                           color=pred_label_color)
             ax[-1].set_yticks([])
 
     fig.suptitle("Breathing parameters")
-    plt.show()
+    save_plot(f"cases/{plot_index or 'case'}.png")
 
 
 if __name__ == '__main__':
@@ -91,8 +96,8 @@ if __name__ == '__main__':
     base_dir(run_path)
 
     bd = BreathingDataset.read(DATASET_PATH)
-    # model = BreathingPatternModel()
-    # model.load(MODEL_PATH)
+    model = BreathingPatternModel()
+    model.load(MODEL_PATH)
 
     sequences = bd.test_sequences
     scaled_sequences = [pd.DataFrame(bd.scaler.transform(s), columns=s.columns) for s in sequences]
@@ -102,7 +107,10 @@ if __name__ == '__main__':
     to_chose = min(MAX_PLOTS, len(bd.test_sequences))
     plot_indices = stratified_sampling(classes=kmed.labels_, sample_size=to_chose)
 
-    for i_seq in range(len(sequences)):
+    y_true_all = []
+    y_pred_all = []
+
+    for i_seq in tqdm(range(len(sequences)), desc="Analysing test cases"):
         scaled = scaled_sequences[i_seq]
 
         window_ranges = [w for w in
@@ -123,12 +131,19 @@ if __name__ == '__main__':
         x_classes = bd.kmed.predict(x_window_features)
         y_classes = bd.kmed.predict(y_window_features)
 
-        plot_breathing(
-            sequences[i_seq][RESP_COLS],
-            ranges=filtered_window_ranges,
-            y_labels_true=y_classes,
-        )
+        y_classes_pred = model.predict(x_windows).tolist()
 
-        pass
+        y_true_all.extend(y_classes)
+        y_pred_all.extend(y_classes_pred)
 
-    pass
+        if i_seq in plot_indices:
+            plot_breathing(
+                sequences[i_seq][RESP_COLS],
+                ranges=filtered_window_ranges,
+                y_labels_true=y_classes,
+                y_labels_pred=y_classes_pred,
+                n_classes=model.n_classes,
+                plot_index=i_seq
+            )
+
+    save_report_and_conf_m(y_true_all, y_pred_all, cm_title="Test confusion matrix")
