@@ -110,7 +110,7 @@ class BreathingPatternModel:
 
         lr_schedule = LrSchedule(optimizer=self.__optimizer, early_stopping=early_stopping, verbose=2)
 
-        xs_train, xs_val, ys_train, ys_val = train_test_split(dataset.xs, dataset.ys_classes, test_size=0.1,
+        xs_train, xs_val, ys_train, ys_val = train_test_split(dataset.xs, dataset.ys_classes, test_size=0.2,
                                                               stratify=dataset.ys_classes)
 
         print(f"Saving training results to {base_dir()}")
@@ -150,7 +150,7 @@ class BreathingPatternModel:
             ys_val_np = ys_val_tensor.cpu().numpy()
             ys_pred_np = ys_pred_class.cpu().numpy()
 
-            save_txt(path='metrics', txt=classification_report(ys_val_np, ys_pred_np))
+            save_txt(path='metrics', txt=classification_report(ys_val_np, ys_pred_np, zero_division=0))
 
             cm = confusion_matrix(ys_val_np, ys_pred_np)
 
