@@ -1,4 +1,4 @@
-import data.colnames_original as c
+import src.colnames_original as c
 
 """
 ['FiO2', 'ANTYBIOTYK', 'RTG_RDS', 'AMINA_PRESYJNA', 'dopamina',

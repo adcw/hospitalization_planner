@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
-import data.colnames_original as c
+import src.colnames_original as c
 from src.preprocessing.utils.transform import transform
 
 CSV_PATH = '../data/input.csv'

@@ -1,13 +1,11 @@
-from typing import Dict, List, Literal, Any, Optional
+from typing import Dict, List, Any, Optional
 
-import data.colnames_original as c
+import src.colnames_original as c
 
 import pandas as pd
 from sklearn.impute import KNNImputer
-from sklearn.impute._base import SimpleImputer, _BaseImputer
 
 from src.preprocessing.encoding.rankencoder import RankEncoder
-from src.visualization.trajectories import plot_trajectories
 
 """
 for impute_target, impute_values in impute_dict.items():

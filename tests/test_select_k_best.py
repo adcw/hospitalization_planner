@@ -1,12 +1,9 @@
-import numpy as np
-import pandas as pd
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_classif
-import seaborn as sns
 
 import pandas as pd
-import data.colnames_original as c
-from data.chosen_colnames import COLS
+import src.colnames_original as c
+from src.chosen_colnames import COLS
 from src.preprocessing.utils.transform import transform
 
 CSV_PATH = '../data/input.csv'

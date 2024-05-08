@@ -1,6 +1,6 @@
 import pandas as pd
-import data.colnames_original as c
-from data.chosen_colnames import COLS
+import src.colnames_original as c
+from src.chosen_colnames import COLS
 from src.preprocessing.utils.transform import transform
 
 
