@@ -6,7 +6,7 @@ import pandas as pd
 
 from src.model_selection.regression_strat_kfold import RegressionStratKFold
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
-from src.model_selection.stratified_sampling import stratified_sampling
+from src.model_selection.stratified import stratified_sampling
 from src.models.step.step_model import StepModel
 from src.models.window.window_model import WindowModel
 from src.session.helpers.session_payload import SessionPayload

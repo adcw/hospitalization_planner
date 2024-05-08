@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 from copy import deepcopy
 from datetime import datetime
 from pickle import load, dump
@@ -12,12 +11,12 @@ import shutil
 
 from matplotlib import pyplot as plt
 
-import data.colnames_original as c
-from data.chosen_colnames import COLS
+import src.colnames_original as c
+from src.chosen_colnames import COLS
 from src.config.parsing import parse_config
 from src.error_analysis.analyse import perform_error_analysis
 from src.model_selection.regression_train_test_split import RegressionTrainTestSplitter
-from src.model_selection.stratified_sampling import stratified_sampling
+from src.model_selection.stratified import stratified_sampling
 from src.preprocessing.preprocessor import Preprocessor
 from src.session.helpers.eval import eval_model
 from src.session.helpers.session_payload import SessionPayload
