@@ -2,11 +2,12 @@ from typing import List, Optional
 
 import dtreeviz
 import pandas as pd
+import sklearn_extra
 from matplotlib import pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 from sklearn_extra.cluster import KMedoids
 
-from src.error_analysis.extract import extract_seq_features
+from src.tools.extract import extract_seq_features
 from src.session.utils.save_plots import save_viz, save_plot
 from src.visualization.plot_clusters import visualize_clusters
 
@@ -45,3 +46,11 @@ def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
     save_viz("pattern_tree.svg", viz)
 
     return features
+
+
+def label_sequences(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]]) -> sklearn_extra.cluster.KMedoids:
+    seq_features = extract_seq_features(seqs, input_cols=stratify_cols)
+    kmed = KMedoids(n_clusters=min(10, len(seqs)), init='k-medoids++')
+    kmed.fit(seq_features)
+
+    return kmed
