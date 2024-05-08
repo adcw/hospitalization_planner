@@ -1,14 +1,12 @@
-import random
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.tree import DecisionTreeClassifier
 
-import data.colnames_original as c
-from src.error_analysis.core.tree_utils import top_rules
-from src.error_analysis.extract import extract_seq_features
-from src.session.utils.save_plots import save_txt, save_viz
+import src.colnames_original as c
+from src.tools.extract import extract_seq_features
+from src.session.utils.save_plots import save_viz
 import dtreeviz
 
 FEAT_COLS = [
