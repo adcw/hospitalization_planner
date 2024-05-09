@@ -3,12 +3,12 @@ from typing import List, Optional
 import pandas as pd
 import torch
 
-from src.chosen_colnames import COLS
 from src.breathing_patterns.data.dataset import BreathingDataset
 from src.breathing_patterns.patter_cluster_cols import PATTERN_CLUSTER_COLS
 from src.breathing_patterns.utils.clustering import learn_clusters, visualize_clustering_rules, label_sequences
 from src.breathing_patterns.utils.plot import plot_medoid_data
 from src.breathing_patterns.utils.windows import make_windows, xy_windows_split
+from src.chosen_colnames import COLS
 from src.config.seeds import set_seed
 from src.model_selection.stratified import train_test_split_safe
 from src.session.model_manager import _get_sequences
@@ -20,8 +20,7 @@ from src.tools.run_utils import get_run_path
 CSV_PATH = '../../../data/input.csv'
 WINDOW_SIZE = 10
 STRIDE_RATE = 0.001
-N_CLASSES = 5
-MAX_TREE_DEPTH = 5
+N_CLASSES = 4
 TEST_PERC = 0.2
 
 
@@ -100,7 +99,6 @@ def generate_breathing_dataset(csv_path: str,
 
     print("Discovering cluster rules...")
     original_w_features = visualize_clustering_rules(original_windows, labels=kmed.labels_,
-                                                     max_tree_depth=max_tree_depth,
                                                      input_cols=pattern_cluster_cols)
 
     # Show cluster centers
@@ -156,7 +154,6 @@ if __name__ == '__main__':
                                window_size=WINDOW_SIZE,
                                stride_rate=STRIDE_RATE,
                                n_classes=N_CLASSES,
-                               max_tree_depth=MAX_TREE_DEPTH,
                                test_perc=TEST_PERC,
                                pattern_cluster_cols=PATTERN_CLUSTER_COLS,
 
