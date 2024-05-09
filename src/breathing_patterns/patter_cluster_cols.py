@@ -5,20 +5,15 @@ from src.chosen_colnames import COLS
 PATTERN_CLUSTER_COLS = [
     # c.BIRTHWEIGHT,
 
+    c.RESPIRATION,
     c.FIO2,
     c.PO2,
-    # c.PTL,
     c.RTG_RDS,
-    # c.RTG_PDA,
 
-    # c.GENERAL_SURFACTANT,
-    # c.GENERAL_PDA_CLOSED,
-    # c.ADRENALINA,
-    # c.PENICELINA1,
-    # c.KARBAPENEM,
-    # c.AMINOGLIKOZYD,
+    c.POSIEW_SEPSA_MYCOTICA,
+    # c.PTL,
+    c.ADRENALINA,
     # c.AMINA_PRESYJNA,
-    # c.STERYD,
-    # c.ANTYBIOTYK,
-    c.RESPIRATION
+    c.STERYD,
+    c.ANTYBIOTYK,
 ]
