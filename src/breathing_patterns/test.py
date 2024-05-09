@@ -26,11 +26,11 @@ PO2 = 'po2'
 ANTYBIOTYK = 'ANTYBIOTYK'
 STERYD = 'STERYD'
 
-DATASET_PATH = "../../bp_dataset_creation_runs/run_2/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_4/breathing_dataset.pkl"
 RUN_PATH = "../../bp_test_runs"
-MODEL_PATH = "../../bp_train_runs/run_3/model.pkl"
+MODEL_PATH = "../../bp_train_runs/run_4/model.pkl"
 
-MAX_PLOTS = 10
+MAX_PLOTS = 40
 MIN_X_WINDOW_RATE = 0.8
 STRIDE_RATE = 0.2
 
