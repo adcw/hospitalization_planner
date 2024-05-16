@@ -1,15 +1,16 @@
 from typing import List, Optional
-
+import matplotlib.pyplot as plt
 import dtreeviz
+import numpy as np
 import pandas as pd
 import sklearn_extra
-from matplotlib import pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 from sklearn_extra.cluster import KMedoids
 from tqdm import tqdm
 
 from src.tools.extract import extract_seq_features
 from src.session.utils.save_plots import save_viz, save_plot
+from src.visualization.colormap import get_dtreeviz_colors
 from src.visualization.plot_clusters import visualize_clusters
 from sklearn.metrics import silhouette_score
 
@@ -19,7 +20,7 @@ def learn_clusters(windows: List[pd.DataFrame],
                    input_cols: Optional[List[str]] = None,
                    save_plots: bool = True,
 
-                   n_probes: int = 20
+                   n_probes: int = 5
                    ):
     features = extract_seq_features(windows, input_cols=input_cols)
 
@@ -47,24 +48,30 @@ def learn_clusters(windows: List[pd.DataFrame],
 
 def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
                                tree_depths: Optional[List] = None, input_cols: Optional[List[str]] = None):
-    if tree_depths is None:
-        tree_depths = [3, 4, 5]
+    # if tree_depths is None:
+    #     tree_depths = [3, 4, 5]
 
     features = extract_seq_features(windows, input_cols=input_cols)
+    num_classes = len(np.unique(labels))
+    colors = get_dtreeviz_colors(num_classes)
 
-    for tree_depth in tqdm(tree_depths, desc="Creating trees"):
-        clf = DecisionTreeClassifier(max_depth=tree_depth).fit(features, labels)
+    # for tree_depth in tqdm(tree_depths, desc="Creating trees"):
+    clf = DecisionTreeClassifier(min_samples_split=int(len(features) * (1/num_classes) * 0.8)).fit(features, labels)
 
-        viz_model = dtreeviz.model(clf,
-                                   X_train=features,
-                                   feature_names=features.columns,
+    viz_model = dtreeviz.model(clf,
+                               X_train=features,
+                               feature_names=features.columns,
 
-                                   y_train=labels,
+                               y_train=labels,
 
-                                   target_name="Klasy")
+                               target_name="Klasy")
 
-        viz = viz_model.view()
-        save_viz(f"pattern_tree_d{tree_depth}.svg", viz)
+    viz = viz_model.view(colors={
+        "classes": colors
+    })
+    # save_viz(f"pattern_tree_d{tree_depth}.svg", viz)
+
+    save_viz(f"pattern_tree.svg", viz)
 
     return features
 

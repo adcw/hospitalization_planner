@@ -123,7 +123,7 @@ class BreathingPatternModel:
                                                                    stratify=dataset.ys_classes)
 
         train_classes_counts = np.unique(ys_train, return_counts=True)[1]
-        weight = torch.Tensor(calculate_class_weights(train_classes_counts, strength=1)).to(self.device)
+        weight = torch.Tensor(calculate_class_weights(train_classes_counts, strength=1.5)).to(self.device)
 
         self.__setup_net()
         self.__criterion = nn.CrossEntropyLoss(weight=weight)

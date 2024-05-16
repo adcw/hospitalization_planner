@@ -1,14 +1,15 @@
 from typing import List, Optional
 
-import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 from src.breathing_patterns.data.dataset import BreathingDataset
 from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
-from src.breathing_patterns.patter_cluster_cols import PATTERN_CLUSTER_COLS
+from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
 from src.breathing_patterns.utils.clustering import learn_clusters
 from src.config.seeds import set_seed
 from src.tools.extract import extract_seq_features
@@ -26,9 +27,9 @@ PO2 = 'po2'
 ANTYBIOTYK = 'ANTYBIOTYK'
 STERYD = 'STERYD'
 
-DATASET_PATH = "../../bp_dataset_creation_runs/run_4/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_1/breathing_dataset.pkl"
 RUN_PATH = "../../bp_test_runs"
-MODEL_PATH = "../../bp_train_runs/run_4/model.pkl"
+MODEL_PATH = "../../bp_train_runs/run_1/model.pkl"
 
 MAX_PLOTS = 40
 MIN_X_WINDOW_RATE = 0.8
@@ -58,14 +59,16 @@ def plot_breathing(
         pred_labels_stairs[i % n_lists].append(y_labels_pred[i])
 
     n_colors = n_classes
-    colors = matplotlib.colormaps['viridis'].resampled(n_colors)([x for x in range(n_colors)])
+    colors = colormaps['viridis'].resampled(n_colors)([x for x in range(n_colors)])
 
     fig, ax = plt.subplots(len(df.columns) + 1, 1, figsize=(10, 14), sharex=True,
-                           gridspec_kw={'hspace': 0.5, 'height_ratios': [*([1] * len(df.columns)), 0.2 * n_lists]})
+                           gridspec_kw={'hspace': 0.5, 'height_ratios': [*([1] * len(df.columns)), 0.17 * n_lists]})
 
     for i, column in enumerate(df.columns):
         ax[i].plot(df[column])
         ax[i].set_title(column)
+        ax[i].xaxis.set_major_locator(plt.MultipleLocator(10))
+        ax[i].grid(axis='x', which='major', linestyle='--', linewidth=0.5, color='gray', alpha=0.5)
 
     for row_i, row in enumerate(ranges_stairs):
         for rng_i, rng in enumerate(row):
@@ -77,6 +80,9 @@ def plot_breathing(
             ax[-1].hlines((len(ranges_stairs) - row_i) * 3 - 1, xmin=rng[0], xmax=rng[-1], linewidth=5,
                           color=pred_label_color)
             ax[-1].set_yticks([])
+
+    ax[-1].grid(axis='x', which='major', linestyle='--', linewidth=0.5, color='gray', alpha=0.5)
+    ax[-1].xaxis.set_major_locator(plt.MultipleLocator(10))
 
     fig.suptitle("Breathing parameters")
     save_plot(f"cases/{plot_index or 'case'}.png")

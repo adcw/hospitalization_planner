@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,7 +16,10 @@ def plot_medoid_data(plot_data, pattern_cluster_cols):
         n_cols = int(np.ceil(num_plots / n_rows))
 
         fig, axs = plt.subplots(n_cols, n_rows, figsize=(8, 10))
-        axs = axs.flatten()
+        if type(axs) == List:
+            axs = axs.flatten()
+        else:
+            axs = [axs]
 
         for i, col in enumerate(pattern_cluster_cols):
             col_values = window_data[col].values

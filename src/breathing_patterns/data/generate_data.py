@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 
 from src.breathing_patterns.data.dataset import BreathingDataset
-from src.breathing_patterns.patter_cluster_cols import PATTERN_CLUSTER_COLS
+from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
 from src.breathing_patterns.utils.clustering import learn_clusters, visualize_clustering_rules, label_sequences
 from src.breathing_patterns.utils.plot import plot_medoid_data
 from src.breathing_patterns.utils.windows import make_windows, xy_windows_split
@@ -20,7 +20,7 @@ from src.tools.run_utils import get_run_path
 CSV_PATH = '../../../data/input.csv'
 WINDOW_SIZE = 10
 STRIDE_RATE = 0.001
-N_CLASSES = 4
+N_CLASSES = 6
 TEST_PERC = 0.2
 
 
@@ -54,7 +54,6 @@ def generate_breathing_dataset(csv_path: str,
                                stride_rate: float,
 
                                n_classes: int,
-                               max_tree_depth: int,
 
                                test_perc: float,
 
@@ -101,6 +100,8 @@ def generate_breathing_dataset(csv_path: str,
     original_w_features = visualize_clustering_rules(original_windows, labels=kmed.labels_,
                                                      input_cols=pattern_cluster_cols)
 
+    input("Proceed?")
+
     # Show cluster centers
     plot_data = []
 
@@ -139,6 +140,8 @@ def generate_breathing_dataset(csv_path: str,
                           )
     curr_path = base_dir()
     ds.save(f"{curr_path}/breathing_dataset.pkl")
+
+    print("Done!")
 
     pass
 
