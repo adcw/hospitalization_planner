@@ -35,7 +35,7 @@ class MLConv(nn.Module):
                 layers.append(conv_data.activation())
 
             if dropout_rate != 0:
-                layers.append(nn.Dropout(dropout_rate))
+                layers.append(nn.Dropout1d(dropout_rate))
 
             in_size = conv_data.channels
 

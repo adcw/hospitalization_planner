@@ -21,7 +21,7 @@ class LazyMLP(nn.Module):
 
         self.output_layer = nn.Linear(hidden_sizes[-1], output_size)
         self.activation = activation
-        self.dropout = nn.Dropout(p=dropout_rate)
+        self.dropout = nn.AlphaDropout(p=dropout_rate)
 
     def forward(self, x):
         x = self.activation(self.input_layer(x))

@@ -37,7 +37,7 @@ class LazyFCCN(nn.Module):
         for layer in self.hidden_layers:
             # joining current layer output with network input forming cascade
             output = self.activation(layer(joined_outputs))
-            last_output = F.dropout(output, p=self.dropout_rate, training=self.training)
+            last_output = F.alpha_dropout(output, p=self.dropout_rate, training=self.training)
             joined_outputs = torch.cat([joined_outputs, last_output], dim=-1)
 
         # apply last layer and activate with sigmoid to squash output between 0 and 1
