@@ -16,7 +16,7 @@ if __name__ == '__main__':
     bd = BreathingDataset.read(DATASET_PATH)
     model = BreathingPatternModel()
 
-    model.fit(bd, batch_size=16, n_epochs=400, es_patience=20)
+    model.fit(bd, batch_size=128, n_epochs=3000, es_patience=50)
     model.dump(f"{base_dir()}/model.pkl")
 
     pass
