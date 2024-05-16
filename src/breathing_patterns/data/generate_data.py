@@ -20,7 +20,7 @@ from src.tools.run_utils import get_run_path
 CSV_PATH = '../../../data/input.csv'
 WINDOW_SIZE = 10
 STRIDE_RATE = 0.001
-N_CLASSES = 6
+N_CLASSES = 4
 TEST_PERC = 0.2
 
 

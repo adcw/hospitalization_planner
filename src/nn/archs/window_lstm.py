@@ -14,6 +14,7 @@ class WindowedConvLSTM(nn.Module):
 
                  # conv
                  conv_layers_data: Optional[List[CLD]] = None,
+                 conv_channel_dropout: float = 0,
 
                  # LSTM
                  lstm_hidden_size: int = 128,
@@ -51,13 +52,14 @@ class WindowedConvLSTM(nn.Module):
             CLD(channels=32, kernel_size=3, activation=nn.SELU),
         ]
 
-        self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=0)
+        self.mlconv = MLConv(input_size=n_attr, conv_layers_data=self.cldata, dropout_rate=conv_channel_dropout)
 
-        self.lstm = nn.LSTM(input_size=self.cldata[-1].channels,
-                            hidden_size=self.lstm_hidden_size,
-                            num_layers=self.lstm_layers,
-                            batch_first=True,
-                            device=self.device, dropout=self.lstm_dropout)
+        # self.lstm = nn.LSTM(input_size=self.cldata[-1].channels,
+        #                     hidden_size=self.lstm_hidden_size,
+        #                     num_layers=self.lstm_layers,
+        #                     batch_first=True,
+        #                     device=self.device,
+        #                     dropout=self.lstm_dropout)
 
         self.mlp = LazyFCCN(
             hidden_sizes=self.mlp_arch,
@@ -76,12 +78,12 @@ class WindowedConvLSTM(nn.Module):
         x_conv = x_conv.permute(0, 2, 1)
         # (batch, seq, feat)
 
-        self.lstm.flatten_parameters()
-        x_lstm, _ = self.lstm(x_conv)
+        # self.lstm.flatten_parameters()
+        # x_lstm, _ = self.lstm(x_conv)
+        #
+        # mlp_in = x_lstm[:, -1, :]
 
-        mlp_in = x_lstm[:, -1, :]
-
-        output = self.mlp(mlp_in)
+        output = self.mlp(x_conv.flatten(-2))
 
         if self.final_activation is not None:
             output = self.final_activation(output)

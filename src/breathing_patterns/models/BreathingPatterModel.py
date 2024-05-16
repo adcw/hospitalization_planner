@@ -21,7 +21,7 @@ from src.session.utils.save_plots import save_plot, save_txt, base_dir
 from src.tools.iterators import batch_iter, shuffled
 
 
-def calculate_class_weights(class_counts, strength=1.0):
+def calculate_class_weights(class_counts, strength=2):
     weights = 1 / np.array(class_counts)
     weights = (weights ** strength) / np.sum(weights ** strength)
 
@@ -48,9 +48,12 @@ class BreathingPatternModel:
         pbar = tqdm(desc="Forwarding", total=len(xs))
         total_loss = 0.0
 
-        sh_ind = shuffled([i for i in range(len(xs))], p=0.2)
+        sh_ind = shuffled([i for i in range(len(xs))], p=1)
         xs = [xs[i] for i in sh_ind]
         ys = [ys[i] for i in sh_ind]
+
+        if is_eval:
+            batch_size = len(xs)
 
         for xs_batch, ys_batch in batch_iter(xs, ys, batch_size=batch_size):
             xs_batch = torch.stack(xs_batch).to(self.device)
@@ -81,18 +84,18 @@ class BreathingPatternModel:
             CLD(channels=64, kernel_size=3, activation=nn.SELU),
             CLD(channels=128, kernel_size=3, activation=nn.SELU),
             CLD(channels=256, kernel_size=3, activation=nn.SELU),
-            CLD(channels=512, kernel_size=3, activation=nn.SELU)
+            CLD(channels=512, kernel_size=3, activation=nn.SELU),
         ]
 
         self.__net = WindowedConvLSTM(n_attr=self.n_attr,
                                       output_size=self.n_classes,
                                       conv_layers_data=cldata,
 
-                                      lstm_hidden_size=256,
-                                      lstm_layers=2,
-                                      lstm_dropout=0.2,
-                                      mlp_dropout=0.2,
-                                      mlp_arch=[128, 64, 32],
+                                      lstm_hidden_size=512,
+                                      lstm_dropout=0.3,
+                                      conv_channel_dropout=0.3,
+                                      mlp_dropout=0.3,
+                                      mlp_arch=[256, 128, 64, 32],
 
                                       final_activation=None) \
             .to(self.device)
@@ -127,7 +130,7 @@ class BreathingPatternModel:
 
         self.__setup_net()
         self.__criterion = nn.CrossEntropyLoss(weight=weight)
-        self.__optimizer = optim.Adam(self.__net.parameters(), weight_decay=0.01, lr=0.0001)
+        self.__optimizer = optim.Adam(self.__net.parameters(), weight_decay=0.01, lr=0.0003)
 
         early_stopping = EarlyStopping(self.__net, patience=es_patience)
 
