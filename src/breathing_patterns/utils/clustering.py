@@ -56,7 +56,10 @@ def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
     colors = get_dtreeviz_colors(num_classes)
 
     # for tree_depth in tqdm(tree_depths, desc="Creating trees"):
-    clf = DecisionTreeClassifier(min_samples_split=int(len(features) * (1/num_classes) * 0.8)).fit(features, labels)
+    clf = DecisionTreeClassifier(
+        # min_samples_split=int(len(features) * (1/num_classes) * 0.8),
+        min_impurity_decrease=0.01
+    ).fit(features, labels)
 
     viz_model = dtreeviz.model(clf,
                                X_train=features,
