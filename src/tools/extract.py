@@ -74,45 +74,49 @@ def _breath_time_features(df: pd.DataFrame, target_col: str, target_col_values_u
     data_sequence = df[target_col].values.flatten()
     result = pd.DataFrame()
 
-    result[f'{target_col}_init'] = [data_sequence[0]]
-    result[f'{target_col}_final'] = [data_sequence[-1]]
+    result[f'{target_col}_mean'] = [np.mean(data_sequence)]
+    result[f'{target_col}_min'] = [np.min(data_sequence)]
+    result[f'{target_col}_max'] = [np.max(data_sequence)]
 
-    count_dict = {}
-    unique, counts = np.unique(data_sequence, return_counts=True)
-
-    for u, c in zip(unique, counts):
-        count_dict[u] = c
-
-    if len(unique) > 10:
-        raise ValueError(f"In this column, there are {len(unique)} unique values, which is unexpected")
-
-    for v in target_col_values_unique:
-        count = count_dict.get(v, 0)
-        result[f'{target_col}_val_{v}'] = [count / len(data_sequence)]
-
-    breath_diff = np.diff(data_sequence)
-    diff_mask = breath_diff != 0
-    all_diffs = diff_mask.sum()
-
-    if all_diffs == 0:
-        imps = 0
-        # dets = 0
-    else:
-        imps = (breath_diff > 0).sum()
-        # dets = all_diffs - imps
-
-    result[f'{target_col}_imps'] = [imps / all_diffs] if all_diffs != 0 else [0]
-    # result[f'{target_col}_dets'] = [dets / all_diffs] if all_diffs != 0 else [0]
-
-    if all_diffs == 0:
-        last_change_is_improv = last_change_is_det = 0
-    else:
-        last_diff = breath_diff[diff_mask][-1]
-        last_change_is_improv = 1 if last_diff > 0 else 0
-        last_change_is_det = 1 if last_diff < 0 else 0
-
-    result[f'{target_col}_is_last_change_imp'] = [last_change_is_improv]
-    result[f'{target_col}_is_last_change_det'] = [last_change_is_det]
+    # result[f'{target_col}_init'] = [data_sequence[0]]
+    # result[f'{target_col}_final'] = [data_sequence[-1]]
+    #
+    # count_dict = {}
+    # unique, counts = np.unique(data_sequence, return_counts=True)
+    #
+    # for u, c in zip(unique, counts):
+    #     count_dict[u] = c
+    #
+    # if len(unique) > 10:
+    #     raise ValueError(f"In this column, there are {len(unique)} unique values, which is unexpected")
+    #
+    # for v in target_col_values_unique:
+    #     count = count_dict.get(v, 0)
+    #     result[f'{target_col}_val_{v}'] = [count / len(data_sequence)]
+    #
+    # breath_diff = np.diff(data_sequence)
+    # diff_mask = breath_diff != 0
+    # all_diffs = diff_mask.sum()
+    #
+    # if all_diffs == 0:
+    #     imps = 0
+    #     # dets = 0
+    # else:
+    #     imps = (breath_diff > 0).sum()
+    #     # dets = all_diffs - imps
+    #
+    # result[f'{target_col}_imps'] = [imps / all_diffs] if all_diffs != 0 else [0]
+    # # result[f'{target_col}_dets'] = [dets / all_diffs] if all_diffs != 0 else [0]
+    #
+    # if all_diffs == 0:
+    #     last_change_is_improv = last_change_is_det = 0
+    # else:
+    #     last_diff = breath_diff[diff_mask][-1]
+    #     last_change_is_improv = 1 if last_diff > 0 else 0
+    #     last_change_is_det = 1 if last_diff < 0 else 0
+    #
+    # result[f'{target_col}_is_last_change_imp'] = [last_change_is_improv]
+    # result[f'{target_col}_is_last_change_det'] = [last_change_is_det]
 
     return result
 
