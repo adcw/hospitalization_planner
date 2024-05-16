@@ -50,10 +50,10 @@ def prev_and_curr(iterator):
 
 
 def shuffled(array, p: float = 1):
-    p = min(1., max(0., p))
-
     if p == 0:
         return array
+
+    p = min(1., max(0., p))
 
     num_to_shuffle = int(len(array) * p)
 
