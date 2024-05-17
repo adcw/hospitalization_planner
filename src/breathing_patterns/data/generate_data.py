@@ -18,9 +18,9 @@ from src.tools.extract import extract_seq_features
 from src.tools.run_utils import get_run_path
 
 CSV_PATH = '../../../data/input.csv'
-WINDOW_SIZE = 10
+WINDOW_SIZE = 5
 STRIDE_RATE = 0.001
-N_CLASSES = 4
+N_CLASSES = 6
 TEST_PERC = 0.2
 
 
@@ -80,9 +80,9 @@ def generate_breathing_dataset(csv_path: str,
 
     labels = label_sequences(sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
-    sequences_train, sequences_test = train_test_split_safe(sequences, stratify=labels, test_size=test_perc)
+    # sequences_train, sequences_test = train_test_split_safe(sequences, stratify=labels, test_size=test_perc)
 
-    sequences_train_scaled, scaler = scale(sequences_train)
+    sequences_train_scaled, scaler = scale(sequences)
 
     # Make windows and cluster them
     print("Preparing windows for clustering...")

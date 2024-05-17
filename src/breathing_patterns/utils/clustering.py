@@ -61,20 +61,44 @@ def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
         min_impurity_decrease=0.01
     ).fit(features, labels)
 
+    feature_names = list(features.columns.values)
     viz_model = dtreeviz.model(clf,
                                X_train=features,
-                               feature_names=features.columns,
+                               feature_names=feature_names,
 
                                y_train=labels,
 
                                target_name="Klasy")
 
-    viz = viz_model.view(colors={
+    tree_viz = viz_model.view(colors={
         "classes": colors
     })
-    # save_viz(f"pattern_tree_d{tree_depth}.svg", viz)
+    save_viz(f"pattern_tree.svg", tree_viz)
 
-    save_viz(f"pattern_tree.svg", viz)
+    fsize = (5, 3)
+    n_features = len(feature_names)
+
+    fig, axes = plt.subplots(nrows=n_features, ncols=1, figsize=(fsize[0], fsize[1] * n_features))
+
+    if n_features == 1:
+        axes = [axes]
+
+    x_ticks = [0, 0.25, 0.5, 0.75, 1]
+
+    for i, (ax, feature_name) in enumerate(zip(axes, feature_names)):
+        show = {'splits'} if i > 0 else {'splits', 'legend'}
+        viz_model.ctree_feature_space(features=[feature_name], show=show, figsize=fsize, ax=ax,
+                                      colors={
+                                          "classes": colors
+                                      })
+
+        # TODO: Hardcoded
+        ax.set_xticks(x_ticks)
+        for tick in x_ticks:
+            ax.axvline(x=tick, color='grey', linestyle='--', linewidth=0.5)
+
+    plt.tight_layout()
+    save_plot("tree_leafs.svg")
 
     return features
 
