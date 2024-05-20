@@ -18,7 +18,10 @@ from src.tools.extract import extract_seq_features
 from src.tools.run_utils import get_run_path
 
 CSV_PATH = '../../../data/input.csv'
-WINDOW_SIZE = 5
+
+PATTERN_WINDOW_SIZE = 5
+HISTORY_WINDOW_SIZE = 15
+
 STRIDE_RATE = 0.001
 N_CLASSES = 5
 TEST_PERC = 0.2
@@ -50,7 +53,9 @@ def pad_left(tensor_list, window_size):
 def generate_breathing_dataset(csv_path: str,
                                usecols: List[str],
 
-                               window_size: int,
+                               pattern_window_size: int,
+                               history_window_size: int,
+
                                stride_rate: float,
 
                                n_classes: int,
@@ -60,34 +65,18 @@ def generate_breathing_dataset(csv_path: str,
                                pattern_cluster_cols: List[str],
                                limit: Optional[int] = None,
                                ):
-    """
-    Generuje dane, przeprowadza próbkowanie, skaluje, tworzy okna i klastry oraz wizualizuje reguły klastrów.
-
-    Args:
-        csv_path (str): Ścieżka do pliku CSV zawierającego dane.
-        usecols (List[str]): Lista kolumn do wykorzystania z pliku CSV.
-        window_size (int): Rozmiar okna.
-        stride_rate (float): Współczynnik kroku.
-        n_classes (int): Liczba klastrów do utworzenia.
-        max_tree_depth (int): Maksymalna głębokość drzewa decyzyjnego.
-        test_perc (float): Procent danych przeznaczonych do testów.
-        pattern_cluster_cols (List[str]): Lista kolumn do wykorzystania do tworzenia klastrów.
-
-    Returns:
-        None
-    """
     sequences, preprocessor = _get_sequences(path=csv_path, limit=limit, usecols=usecols)
 
     labels = label_sequences(sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
-    # sequences_train, sequences_test = train_test_split_safe(sequences, stratify=labels, test_size=test_perc)
+    sequences_train, sequences_test = train_test_split_safe(sequences, stratify=labels, test_size=test_perc)
 
     sequences_train_scaled, scaler = scale(sequences)
 
     # Make windows and cluster them
     print("Preparing windows for clustering...")
-    windows = make_windows(sequences_train_scaled, window_size=window_size,
-                           stride=max(1, round(window_size * stride_rate)))
+    windows = make_windows(sequences_train_scaled, window_size=pattern_window_size,
+                           stride=max(1, round(pattern_window_size * stride_rate)))
 
     print("Performing clustering...")
     kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
@@ -116,10 +105,10 @@ def generate_breathing_dataset(csv_path: str,
 
     # Creating windows for training
     print("Preparing windows for clustering...")
-    windows = make_windows(sequences_train_scaled, window_size=window_size * 2,
-                           stride=max(1, round(window_size * stride_rate)))
+    windows = make_windows(sequences_train_scaled, window_size=history_window_size + pattern_window_size,
+                           stride=max(1, round(history_window_size * stride_rate)))
 
-    x_windows, y_windows = xy_windows_split(windows, target_len=window_size, min_x_len=int(0.5 * window_size))
+    x_windows, y_windows = xy_windows_split(windows, target_len=pattern_window_size, min_x_len=int(0.5 * history_window_size))
 
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
     ys_classes = kmed.predict(y_window_features)
@@ -128,13 +117,13 @@ def generate_breathing_dataset(csv_path: str,
     xs_classes = kmed.predict(x_window_features)
 
     xs = [torch.Tensor(x.values) for x in x_windows]
-    xs = pad_left(xs, window_size=window_size)
+    xs = pad_left(xs, window_size=history_window_size)
 
     ds = BreathingDataset(xs=xs,
                           xs_classes=xs_classes,
                           ys_classes=ys_classes,
                           test_sequences=sequences_test,
-                          window_size=WINDOW_SIZE,
+                          window_size=PATTERN_WINDOW_SIZE,
                           kmed=kmed,
                           scaler=scaler,
                           )
@@ -154,7 +143,11 @@ if __name__ == '__main__':
 
     generate_breathing_dataset(csv_path=CSV_PATH,
                                usecols=COLS,
-                               window_size=WINDOW_SIZE,
+
+                               pattern_window_size=PATTERN_WINDOW_SIZE,
+                               history_window_size=HISTORY_WINDOW_SIZE,
+
+
                                stride_rate=STRIDE_RATE,
                                n_classes=N_CLASSES,
                                test_perc=TEST_PERC,

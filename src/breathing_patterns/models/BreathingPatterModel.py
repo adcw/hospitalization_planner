@@ -95,9 +95,9 @@ class BreathingPatternModel:
 
                                       # lstm_hidden_size=512,
                                       # lstm_dropout=0.3,
-                                      conv_channel_dropout=0.5,
-                                      mlp_dropout=0.4,
-                                      mlp_arch=[256, 128, 64, 32],
+                                      conv_channel_dropout=0.3,
+                                      mlp_dropout=0.3,
+                                      mlp_arch=[256, 256, 64, 32],
 
                                       final_activation=None) \
             .to(self.device)
