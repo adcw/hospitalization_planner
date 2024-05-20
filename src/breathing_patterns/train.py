@@ -4,7 +4,7 @@ from src.config.seeds import set_seed
 from src.session.utils.save_plots import base_dir
 from src.tools.run_utils import get_run_path
 
-DATASET_PATH = "../../bp_dataset_creation_runs/run_1/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_2/breathing_dataset.pkl"
 RUN_PATH = "../../bp_train_runs"
 
 
@@ -14,6 +14,7 @@ def train():
 
     model.fit(bd, batch_size=128, n_epochs=3000, es_patience=50)
     model.dump(f"{base_dir()}/model.pkl")
+
 
 if __name__ == '__main__':
     set_seed()

@@ -50,8 +50,8 @@ def pad_left(tensor_list, window_size):
     return padded_list
 
 
-def generate_breathing_dataset(csv_path: str,
-                               usecols: List[str],
+def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
+                               sequences_test: List[pd.DataFrame],
 
                                pattern_window_size: int,
                                history_window_size: int,
@@ -60,18 +60,9 @@ def generate_breathing_dataset(csv_path: str,
 
                                n_classes: int,
 
-                               test_perc: float,
-
                                pattern_cluster_cols: List[str],
-                               limit: Optional[int] = None,
                                ):
-    sequences, preprocessor = _get_sequences(path=csv_path, limit=limit, usecols=usecols)
-
-    labels = label_sequences(sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
-
-    sequences_train, sequences_test = train_test_split_safe(sequences, stratify=labels, test_size=test_perc)
-
-    sequences_train_scaled, scaler = scale(sequences)
+    sequences_train_scaled, scaler = scale(sequences_train)
 
     # Make windows and cluster them
     print("Preparing windows for clustering...")
@@ -88,8 +79,6 @@ def generate_breathing_dataset(csv_path: str,
     print("Discovering cluster rules...")
     original_w_features = visualize_clustering_rules(original_windows, labels=kmed.labels_,
                                                      input_cols=pattern_cluster_cols)
-
-    input("Proceed?")
 
     # Show cluster centers
     plot_data = []
@@ -108,7 +97,8 @@ def generate_breathing_dataset(csv_path: str,
     windows = make_windows(sequences_train_scaled, window_size=history_window_size + pattern_window_size,
                            stride=max(1, round(history_window_size * stride_rate)))
 
-    x_windows, y_windows = xy_windows_split(windows, target_len=pattern_window_size, min_x_len=int(0.5 * history_window_size))
+    x_windows, y_windows = xy_windows_split(windows, target_len=pattern_window_size,
+                                            min_x_len=int(0.5 * history_window_size))
 
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
     ys_classes = kmed.predict(y_window_features)
@@ -127,10 +117,9 @@ def generate_breathing_dataset(csv_path: str,
                           kmed=kmed,
                           scaler=scaler,
                           )
-    curr_path = base_dir()
-    ds.save(f"{curr_path}/breathing_dataset.pkl")
 
     print("Done!")
+    return ds
 
     pass
 
@@ -141,19 +130,23 @@ if __name__ == '__main__':
     print(f"Current run path: {run_path}")
     base_dir(run_path)
 
-    generate_breathing_dataset(csv_path=CSV_PATH,
-                               usecols=COLS,
+    _sequences, preprocessor = _get_sequences(path=CSV_PATH, usecols=COLS)
+    labels = label_sequences(_sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
-                               pattern_window_size=PATTERN_WINDOW_SIZE,
-                               history_window_size=HISTORY_WINDOW_SIZE,
+    _sequences_train, _sequences_test = train_test_split_safe(_sequences, stratify=labels, test_size=TEST_PERC)
 
+    _ds = generate_breathing_dataset(
+        sequences_train=_sequences_train,
+        sequences_test=_sequences_test,
 
-                               stride_rate=STRIDE_RATE,
-                               n_classes=N_CLASSES,
-                               test_perc=TEST_PERC,
-                               pattern_cluster_cols=PATTERN_CLUSTER_COLS,
+        pattern_window_size=PATTERN_WINDOW_SIZE,
+        history_window_size=HISTORY_WINDOW_SIZE,
 
-                               limit=None
-                               )
+        stride_rate=STRIDE_RATE,
+        n_classes=N_CLASSES,
+        pattern_cluster_cols=PATTERN_CLUSTER_COLS,
+    )
+
+    _ds.save(f"{run_path}/breathing_dataset.pkl")
 
     pass

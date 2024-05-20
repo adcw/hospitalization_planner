@@ -21,17 +21,9 @@ from src.tools.run_utils import get_run_path
 
 from src.configuration import COLORMAP
 
-RESPIRATION = 'respiration'
-GENERAL_SURFACTANT = 'GENERAL_SURFACTANT'
-FIO2 = 'FiO2'
-RTG_RDS = 'RTG_RDS'
-PO2 = 'po2'
-ANTYBIOTYK = 'ANTYBIOTYK'
-STERYD = 'STERYD'
-
-DATASET_PATH = "../../bp_dataset_creation_runs/run_1/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_2/breathing_dataset.pkl"
 RUN_PATH = "../../bp_test_runs"
-MODEL_PATH = "../../bp_train_runs/run_1/model.pkl"
+MODEL_PATH = "../../bp_train_runs/run_8/model.pkl"
 
 MAX_PLOTS = 40
 MIN_X_WINDOW_RATE = 0.8

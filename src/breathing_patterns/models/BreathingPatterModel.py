@@ -95,9 +95,9 @@ class BreathingPatternModel:
 
                                       # lstm_hidden_size=512,
                                       # lstm_dropout=0.3,
-                                      conv_channel_dropout=0.3,
-                                      mlp_dropout=0.3,
-                                      mlp_arch=[256, 256, 64, 32],
+                                      conv_channel_dropout=0.5,
+                                      mlp_dropout=0.5,
+                                      mlp_arch=[256, 256, 128, 32],
 
                                       final_activation=None) \
             .to(self.device)
@@ -132,7 +132,7 @@ class BreathingPatternModel:
 
         self.__setup_net()
         self.__criterion = nn.CrossEntropyLoss(weight=weight)
-        self.__optimizer = optim.Adam(self.__net.parameters(), weight_decay=0.001, lr=0.0003)
+        self.__optimizer = optim.Adam(self.__net.parameters(), weight_decay=0.01, lr=0.0002)
 
         early_stopping = EarlyStopping(self.__net, patience=es_patience)
 
