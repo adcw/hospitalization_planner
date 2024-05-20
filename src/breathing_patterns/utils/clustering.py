@@ -16,6 +16,23 @@ from sklearn.metrics import silhouette_score
 from src.configuration import COLORMAP
 
 
+def _medoid_helper(kmed: KMedoids, features, n_probes: int = 10):
+    best_score = -1
+    best_kmed = None
+
+    p_bar = tqdm(range(n_probes), desc="Testing different clustering options")
+    for _ in p_bar:
+
+        score = silhouette_score(features, kmed.fit_predict(features))
+
+        if score > best_score:
+            best_score = score
+            best_kmed = kmed
+
+            p_bar.set_postfix({"Best silhouette score": best_score})
+
+    return best_kmed
+
 
 def learn_clusters(windows: List[pd.DataFrame],
                    n_clusters: int,
@@ -26,26 +43,15 @@ def learn_clusters(windows: List[pd.DataFrame],
                    ):
     features = extract_seq_features(windows, input_cols=input_cols)
 
-    best_score = -1
-    best_kmed = None
-
-    p_bar = tqdm(range(n_probes), desc="Testing different clustering options")
-    for _ in p_bar:
-        kmed = KMedoids(n_clusters=n_clusters, init='k-medoids++')
-        score = silhouette_score(features, kmed.fit_predict(features))
-
-        if score > best_score:
-            best_score = score
-            best_kmed = kmed
-
-            p_bar.set_postfix({"Best silhouette score": best_score})
+    kmed = KMedoids(n_clusters=n_clusters, init='k-medoids++')
+    kmed = _medoid_helper(kmed, features)
 
     if save_plots:
-        visualize_clusters(features, best_kmed.labels_, best_kmed.cluster_centers_)
+        visualize_clusters(features, kmed.labels_, kmed.cluster_centers_)
         save_plot("clusters.png")
         plt.show()
 
-    return best_kmed
+    return kmed
 
 
 def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
@@ -105,9 +111,11 @@ def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
     return features
 
 
-def label_sequences(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]]) -> sklearn_extra.cluster.KMedoids:
-    seq_features = extract_seq_features(seqs, input_cols=stratify_cols)
-    kmed = KMedoids(n_clusters=min(10, len(seqs)), init='k-medoids++')
-    kmed.fit(seq_features)
+def label_sequences(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]],
+                    n_clusters: int = 5) -> sklearn_extra.cluster.KMedoids:
+    seq_features = extract_seq_features(seqs, input_cols=stratify_cols, mode="old")
+
+    kmed = KMedoids(n_clusters=min(n_clusters, len(seqs)), init='k-medoids++')
+    kmed = _medoid_helper(kmed, seq_features)
 
     return kmed
