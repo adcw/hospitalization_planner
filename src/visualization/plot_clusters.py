@@ -2,7 +2,7 @@ from typing import Optional
 
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
-
+from src.configuration import  COLORMAP
 
 def visualize_clusters(data, labels, centroids=None, title: Optional[str] = 'Cluster visualisation'):
     """
@@ -21,12 +21,14 @@ def visualize_clusters(data, labels, centroids=None, title: Optional[str] = 'Clu
     plt.figure(figsize=(8, 6))
 
     # Plot data points with cluster labels
-    plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='viridis', alpha=0.5,
+    plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap=COLORMAP, alpha=0.5,
                 marker='o', label='Data Points')
 
     # Plot centroids for k-means clustering (if provided)
     if centroids is not None:
         reduced_centroids = pca.transform(centroids)
+
+        # TODO: https://www.geeksforgeeks.org/matplotlib-pyplot-colorbar-function-in-python/
         plt.scatter(reduced_centroids[:, 0], reduced_centroids[:, 1], c='red', marker='x',
                     s=100, label='Centroids')
 

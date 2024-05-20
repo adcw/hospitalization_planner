@@ -13,6 +13,8 @@ from src.session.utils.save_plots import save_viz, save_plot
 from src.visualization.colormap import get_dtreeviz_colors
 from src.visualization.plot_clusters import visualize_clusters
 from sklearn.metrics import silhouette_score
+from src.configuration import COLORMAP
+
 
 
 def learn_clusters(windows: List[pd.DataFrame],
@@ -53,7 +55,7 @@ def visualize_clustering_rules(windows: List[pd.DataFrame], labels: List,
 
     features = extract_seq_features(windows, input_cols=input_cols)
     num_classes = len(np.unique(labels))
-    colors = get_dtreeviz_colors(num_classes)
+    colors = get_dtreeviz_colors(num_classes, cmap_name=COLORMAP)
 
     # for tree_depth in tqdm(tree_depths, desc="Creating trees"):
     clf = DecisionTreeClassifier(

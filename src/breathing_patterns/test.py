@@ -19,6 +19,8 @@ from src.tools.iterators import windowed
 from src.tools.reports import save_report_and_conf_m
 from src.tools.run_utils import get_run_path
 
+from src.configuration import COLORMAP
+
 RESPIRATION = 'respiration'
 GENERAL_SURFACTANT = 'GENERAL_SURFACTANT'
 FIO2 = 'FiO2'
@@ -59,7 +61,7 @@ def plot_breathing(
         pred_labels_stairs[i % n_lists].append(y_labels_pred[i])
 
     n_colors = n_classes
-    colors = colormaps['viridis'].resampled(n_colors)([x for x in range(n_colors)])
+    colors = colormaps[COLORMAP].resampled(n_colors)([x for x in range(n_colors)])
 
     fig, ax = plt.subplots(len(df.columns) + 1, 1, figsize=(10, 14), sharex=True,
                            gridspec_kw={'hspace': 0.5, 'height_ratios': [*([1] * len(df.columns)), 0.17 * n_lists]})
