@@ -52,78 +52,40 @@ def _df_time_features(dataframe: pd.DataFrame, input_cols: List[str]) -> pd.Data
     return new_dataframe
 
 
-def _breath_time_features(df: pd.DataFrame, target_col: str, target_col_values_unique: List):
-    """
-    a. kod sposobu wentylacji w pierwszym elemencie sekwencji (podzielone przez 5),
-    b. kod sposobu wentylacji w ostatnim elemencie sekwencji (podzielone przez 5),
-    d. liczba OW w sekwencji (normalizacja przez liczbę wezłów w sekwencji)
-    e. liczba CPAP w sekwencji (normalizacja przez liczbę wezłów w
-    sekwencji)
-    f. liczba MAP1 w sekwencji (normalizacja przez liczbę wezłów w sekwencji)
-    g. liczba MAP2 w sekwencji (normalizacja przez liczbę wezłów w sekwencji)
-    h. liczba MAP3 w sekwencji (normalizacja przez liczbę wezłów w sekwencji)
-    i. liczba przejść tzw. pogorszeń sposobów wentylacji  (normalizacja przez liczbę przejść w sekwencji)
-    j. liczba przejść tzw. polepszeń sposobów wentylacji  (normalizacja przez liczbę przejść w sekwencji)
-    k. czy ostatnie przejście to pogorszenie? (1-TAK, 0-NIE)
-    l. czy ostatnie przejście to polepszenie? (1-TAK, 0-NIE)
-
-
-    :param breath:
-    :return:
-    """
+def _3m_features(df: pd.DataFrame, target_col: str):
     data_sequence = df[target_col].values.flatten()
     result = pd.DataFrame()
 
     result[f'{target_col}_mean'] = [np.mean(data_sequence)]
     result[f'{target_col}_min'] = [np.min(data_sequence)]
     result[f'{target_col}_max'] = [np.max(data_sequence)]
+    return result
 
-    # result[f'{target_col}_init'] = [data_sequence[0]]
-    # result[f'{target_col}_final'] = [data_sequence[-1]]
-    #
-    # count_dict = {}
-    # unique, counts = np.unique(data_sequence, return_counts=True)
-    #
-    # for u, c in zip(unique, counts):
-    #     count_dict[u] = c
-    #
-    # if len(unique) > 10:
-    #     raise ValueError(f"In this column, there are {len(unique)} unique values, which is unexpected")
-    #
-    # for v in target_col_values_unique:
-    #     count = count_dict.get(v, 0)
-    #     result[f'{target_col}_val_{v}'] = [count / len(data_sequence)]
-    #
-    # breath_diff = np.diff(data_sequence)
-    # diff_mask = breath_diff != 0
-    # all_diffs = diff_mask.sum()
-    #
-    # if all_diffs == 0:
-    #     imps = 0
-    #     # dets = 0
-    # else:
-    #     imps = (breath_diff > 0).sum()
-    #     # dets = all_diffs - imps
-    #
-    # result[f'{target_col}_imps'] = [imps / all_diffs] if all_diffs != 0 else [0]
-    # # result[f'{target_col}_dets'] = [dets / all_diffs] if all_diffs != 0 else [0]
-    #
-    # if all_diffs == 0:
-    #     last_change_is_improv = last_change_is_det = 0
-    # else:
-    #     last_diff = breath_diff[diff_mask][-1]
-    #     last_change_is_improv = 1 if last_diff > 0 else 0
-    #     last_change_is_det = 1 if last_diff < 0 else 0
-    #
-    # result[f'{target_col}_is_last_change_imp'] = [last_change_is_improv]
-    # result[f'{target_col}_is_last_change_det'] = [last_change_is_det]
+
+def _proportion_features(
+        df: pd.DataFrame, target_col: str, target_col_values_unique: np.ndarray
+):
+    data_sequence = df[target_col].values.flatten()
+    result = pd.DataFrame()
+    count_dict = {}
+    unique, counts = np.unique(data_sequence, return_counts=True)
+
+    for u, c in zip(unique, counts):
+        count_dict[u] = c
+
+    if len(unique) > 10:
+        raise ValueError(f"In this column, there are {len(unique)} unique values, which is unexpected")
+
+    for v in target_col_values_unique:
+        count = count_dict.get(v, 0)
+        result[f'{target_col}_val_{v}'] = [count / len(data_sequence)]
 
     return result
 
 
 def extract_seq_features(sequences: List[pd.DataFrame],
                          input_cols: Optional[List[str]] = None,
-                         mode: Literal['old', 'breath'] = 'breath',
+                         mode: Literal['3m', 'prop', 'old'] = '3m',
                          ) -> pd.DataFrame:
     """
     Extracts time series features from a list of sequences.
@@ -140,7 +102,10 @@ def extract_seq_features(sequences: List[pd.DataFrame],
 
     if mode == 'old':
         results = [_df_time_features(seq, input_cols) for seq in sequences]
-    elif mode == 'breath':
+    elif mode == '3m':
+        results = [_3m_features(seq, input_cols[0]) for seq in sequences]
+
+    elif mode == 'prop':
         if len(input_cols) > 1:
             raise ValueError("For breath mode, specify only ine input column (respiration)")
 
@@ -148,6 +113,6 @@ def extract_seq_features(sequences: List[pd.DataFrame],
             np.concatenate([s[input_cols[0]].values.flatten() for s in sequences])
         )
 
-        results = [_breath_time_features(seq, input_cols[0], target_col_values_unique) for seq in sequences]
+        results = [_proportion_features(seq, input_cols[0], target_col_values_unique) for seq in sequences]
 
     return pd.concat(results)
