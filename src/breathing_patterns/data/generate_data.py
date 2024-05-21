@@ -2,6 +2,7 @@ from typing import List, Optional
 
 import pandas as pd
 import torch
+from sklearn.preprocessing import MinMaxScaler
 
 from src.breathing_patterns.data.dataset import BreathingDataset
 from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
@@ -50,23 +51,18 @@ def pad_left(tensor_list, window_size):
     return padded_list
 
 
-def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
-                               sequences_test: List[pd.DataFrame],
+def extract_patterns(
+        sequences: List[pd.DataFrame],
+        pattern_window_size: int,
+        stride_rate: float,
+        n_classes: int,
+        pattern_cluster_cols: List[str],
 
-                               pattern_window_size: int,
-                               history_window_size: int,
-
-                               stride_rate: float,
-
-                               n_classes: int,
-
-                               pattern_cluster_cols: List[str],
-                               ):
-    sequences_train_scaled, scaler = scale(sequences_train)
-
+        scaler: MinMaxScaler
+):
     # Make windows and cluster them
     print("Preparing windows for clustering...")
-    windows = make_windows(sequences_train_scaled, window_size=pattern_window_size,
+    windows = make_windows(sequences, window_size=pattern_window_size,
                            stride=max(1, round(pattern_window_size * stride_rate)))
 
     print("Performing clustering...")
@@ -92,12 +88,29 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
 
     plot_medoid_data(plot_data, PATTERN_CLUSTER_COLS)
 
+    return kmed
+
+
+def get_dataset(
+        sequences_train: List[pd.DataFrame],
+        sequences_test: List[pd.DataFrame],
+
+        pattern_window_size: int,
+        history_window_size: int,
+
+        stride_rate: float,
+
+        pattern_cluster_cols: List[str],
+
+        kmed,
+        scaler
+):
     # Creating windows for training
     print("Preparing windows for clustering...")
-    windows = make_windows(sequences_train_scaled, window_size=history_window_size + pattern_window_size,
-                           stride=max(1, round(history_window_size * stride_rate)))
+    train_windows = make_windows(sequences_train, window_size=history_window_size + pattern_window_size,
+                                 stride=max(1, round(history_window_size * stride_rate)))
 
-    x_windows, y_windows = xy_windows_split(windows, target_len=pattern_window_size,
+    x_windows, y_windows = xy_windows_split(train_windows, target_len=pattern_window_size,
                                             min_x_len=int(0.5 * history_window_size))
 
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
@@ -109,22 +122,56 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
     xs = [torch.Tensor(x.values) for x in x_windows]
     xs = pad_left(xs, window_size=history_window_size)
 
-    ds = BreathingDataset(xs=xs,
-                          xs_classes=xs_classes,
-                          ys_classes=ys_classes,
-                          test_sequences=sequences_test,
-
-                          pattern_window_size=PATTERN_WINDOW_SIZE,
-                          history_window_size=HISTORY_WINDOW_SIZE,
-
-                          kmed=kmed,
-                          scaler=scaler,
-                          )
-
     print("Done!")
-    return ds
 
-    pass
+    return BreathingDataset(xs=xs,
+                            xs_classes=xs_classes,
+                            ys_classes=ys_classes,
+                            test_sequences=sequences_test,
+
+                            pattern_window_size=PATTERN_WINDOW_SIZE,
+                            history_window_size=HISTORY_WINDOW_SIZE,
+
+                            kmed=kmed,
+                            scaler=scaler,
+                            )
+
+
+def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
+                               sequences_test: List[pd.DataFrame],
+
+                               pattern_window_size: int,
+                               history_window_size: int,
+
+                               stride_rate: float,
+
+                               n_classes: int,
+
+                               pattern_cluster_cols: List[str],
+                               scaler
+                               ):
+    kmed = extract_patterns(
+        sequences=[*sequences_train, *sequences_test],
+        scaler=scaler,
+        n_classes=n_classes,
+        stride_rate=stride_rate,
+        pattern_window_size=pattern_window_size,
+        pattern_cluster_cols=pattern_cluster_cols
+    )
+
+    return get_dataset(
+        sequences_train=sequences_train,
+        sequences_test=sequences_test,
+
+        pattern_window_size=pattern_window_size,
+        history_window_size=history_window_size,
+
+        pattern_cluster_cols=pattern_cluster_cols,
+        stride_rate=stride_rate,
+
+        scaler=scaler,
+        kmed=kmed
+    )
 
 
 if __name__ == '__main__':
@@ -134,6 +181,7 @@ if __name__ == '__main__':
     base_dir(run_path)
 
     _sequences, preprocessor = _get_sequences(path=CSV_PATH, usecols=COLS)
+    _sequences, _scaler = scale(_sequences)
     labels = label_sequences(_sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
     _sequences_train, _sequences_test = train_test_split_safe(_sequences, stratify=labels, test_size=TEST_PERC)
@@ -148,6 +196,8 @@ if __name__ == '__main__':
         stride_rate=STRIDE_RATE,
         n_classes=N_CLASSES,
         pattern_cluster_cols=PATTERN_CLUSTER_COLS,
+
+        scaler=_scaler
     )
 
     _ds.save(f"{run_path}/breathing_dataset.pkl")
