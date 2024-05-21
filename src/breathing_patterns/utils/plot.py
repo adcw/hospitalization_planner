@@ -29,10 +29,8 @@ def plot_medoid_data(plot_data, pattern_cluster_cols):
             axs[i].set_xlabel('Time index')
             axs[i].set_ylabel('Value')
 
-        # Dostosowanie układu subplotu
         plt.tight_layout()
-        plt.suptitle(f"Centroid of class {class_label}")
+        plt.suptitle(f"Centroid klasy {class_label}")
 
-        # Wyświetlanie wykresów
         save_plot(f"cluster_{class_label}")
         plt.show()

@@ -1,4 +1,4 @@
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 
 from src.breathing_patterns.data.generate_data import generate_breathing_dataset
 from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
@@ -20,7 +20,7 @@ N_CLASSES = 5
 TEST_PERC = 0.2
 CSV_PATH = '../../data/input.csv'
 
-RUN_PATH = "../../bp_eval_runs"
+RUN_PATH = "../../bp_crossvalidation_runs"
 
 if __name__ == '__main__':
     set_seed()
@@ -30,14 +30,14 @@ if __name__ == '__main__':
     sequences, preprocessor = _get_sequences(path=CSV_PATH, usecols=COLS)
     labels = label_sequences(sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
-    kfold = KFold(n_splits=3)
+    kfold = StratifiedKFold(n_splits=10)
 
     y_true_all = []
     y_pred_all = []
-    for i, (train_indices, val_indices) in enumerate(kfold.split(sequences)):
+    for i, (train_indices, test_indices) in enumerate(kfold.split(sequences, y=labels)):
         print(f"SPLIT {i + 1}")
         sequences_train = [sequences[i] for i in train_indices]
-        sequences_test = [sequences[i] for i in val_indices]
+        sequences_test = [sequences[i] for i in test_indices]
 
         base_dir(f"{run_path}/split_{i + 1}/dataset")
         bd = generate_breathing_dataset(
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
         base_dir(f"{run_path}/split_{i + 1}/train")
         model = BreathingPatternModel()
-        model.fit(bd, batch_size=128, n_epochs=2, es_patience=50)
+        model.fit(bd, batch_size=128, n_epochs=5000, es_patience=50)
 
         # Classification report in dict and confusion matrix
         base_dir(f"{run_path}/split_{i + 1}/test")
@@ -64,4 +64,4 @@ if __name__ == '__main__':
         y_pred_all.extend(y_pred)
 
     base_dir(f"{run_path}")
-    save_report_and_conf_m(y_true=y_true_all, y_pred=y_pred_all)
+    save_report_and_conf_m(y_true=y_true_all, y_pred=y_pred_all, cm_title="Macierz pomyłek - dane testowe")

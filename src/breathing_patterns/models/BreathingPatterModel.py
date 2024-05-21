@@ -162,7 +162,7 @@ class BreathingPatternModel:
 
         plt.plot(train_losses, label="Train losses")
         plt.plot(val_losses, label="Val losses")
-        plt.title("Training performance")
+        plt.title("Wartości straty")
         plt.legend()
         save_plot("losses.png")
 
@@ -183,9 +183,9 @@ class BreathingPatternModel:
             plt.figure(figsize=(10, 8))
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=range(self.n_classes),
                         yticklabels=range(self.n_classes))
-            plt.xlabel('Predicted labels')
-            plt.ylabel('True labels')
-            plt.title('Confusion matrix - Validation set')
+            plt.xlabel('Przewidywane etykiety')
+            plt.ylabel('Rzeczywiste etykiety')
+            plt.title('Macierz pomyłek - dane walidacyjne')
             save_plot("validation_confusion_matrix.png")
 
             pass

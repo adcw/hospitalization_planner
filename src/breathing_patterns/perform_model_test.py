@@ -32,7 +32,10 @@ def plot_breathing(
         y_labels_true: List[int],
         y_labels_pred: List[int],
         n_classes: int,
-        plot_index: Optional[int] = None
+
+        pattern_len: int,
+
+        plot_index: Optional[int] = None,
 ):
     stride = ranges[1][0] - ranges[0][0] if len(ranges) > 1 else 1
     w_len = len(ranges[0])
@@ -44,15 +47,15 @@ def plot_breathing(
     pred_labels_stairs = [[] for _ in range(n_lists)]
 
     for i, r in enumerate(ranges):
-        ranges_stairs[i % n_lists].append([r[int(w_len / 2)], r[-1]])
+        ranges_stairs[i % n_lists].append([r[-int(w_len - pattern_len)], r[-1] + 1])
         real_labels_stairs[i % n_lists].append(y_labels_true[i])
         pred_labels_stairs[i % n_lists].append(y_labels_pred[i])
 
     n_colors = n_classes
     colors = colormaps[COLORMAP].resampled(n_colors)([x for x in range(n_colors)])
 
-    fig, ax = plt.subplots(len(df.columns) + 1, 1, figsize=(10, 14), sharex=True,
-                           gridspec_kw={'hspace': 0.5, 'height_ratios': [*([1] * len(df.columns)), 0.17 * n_lists]})
+    fig, ax = plt.subplots(len(df.columns) + 1, 1, figsize=(9, 7), sharex=True,
+                           gridspec_kw={'hspace': 0.5, 'height_ratios': [*([1] * len(df.columns)), 0.1 * n_lists]})
 
     for i, column in enumerate(df.columns):
         ax[i].plot(df[column])
@@ -74,7 +77,7 @@ def plot_breathing(
     ax[-1].grid(axis='x', which='major', linestyle='--', linewidth=0.5, color='gray', alpha=0.5)
     ax[-1].xaxis.set_major_locator(plt.MultipleLocator(10))
 
-    fig.suptitle("Breathing parameters")
+    fig.suptitle("Test na pacjentach z grupy testowej")
     save_plot(f"cases/{plot_index}.png")
 
 
@@ -122,10 +125,12 @@ def test_model(
             y_labels_true=y_classes,
             y_labels_pred=y_classes_pred,
             n_classes=model.n_classes,
-            plot_index=i_seq
+            plot_index=i_seq,
+
+            pattern_len=dataset.history_window_size
         )
 
-    save_report_and_conf_m(y_true_all, y_pred_all, cm_title="Test confusion matrix")
+    save_report_and_conf_m(y_true_all, y_pred_all, cm_title="Macierz pomyłek - dane testowe")
 
     return y_true_all, y_pred_all
 
