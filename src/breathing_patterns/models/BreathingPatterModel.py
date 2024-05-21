@@ -176,7 +176,7 @@ class BreathingPatternModel:
             ys_val_np = ys_val_tensor.cpu().numpy()
             ys_pred_np = ys_pred_class.cpu().numpy()
 
-            save_txt(path='metrics', txt=classification_report(ys_val_np, ys_pred_np, zero_division=0))
+            save_txt(path='classification_report.txt', txt=classification_report(ys_val_np, ys_pred_np, zero_division=0))
 
             cm = confusion_matrix(ys_val_np, ys_pred_np)
 

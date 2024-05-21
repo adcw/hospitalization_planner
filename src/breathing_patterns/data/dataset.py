@@ -17,11 +17,14 @@ class BreathingDataset:
 
                  test_sequences: List[pd.DataFrame],
 
-                 window_size: int,
+                 pattern_window_size: int,
+                 history_window_size: int,
+
                  kmed: sklearn_extra.cluster.KMedoids,
                  scaler: MinMaxScaler
                  ):
-        self.window_size = window_size
+        self.pattern_window_size = pattern_window_size
+        self.history_window_size = history_window_size
 
         self.xs = xs
         self.xs_classes = xs_classes
@@ -38,7 +41,7 @@ class BreathingDataset:
     @staticmethod
     def read(path: str):
         with open(path, "rb") as file:
-            xs, xs_classes, ys_classes, test_sequences, kmed, scaler = pickle.load(file)
+            xs, xs_classes, ys_classes, test_sequences, hws, pws, kmed, scaler = pickle.load(file)
             return BreathingDataset(
                 xs=xs,
                 xs_classes=xs_classes,
@@ -46,7 +49,9 @@ class BreathingDataset:
                 ys_classes=ys_classes,
                 test_sequences=test_sequences,
 
-                window_size=xs[0].shape[0],
+                history_window_size=hws,
+                pattern_window_size=pws,
+
                 kmed=kmed,
                 scaler=scaler
             )
@@ -62,6 +67,9 @@ class BreathingDataset:
 
                 self.ys_classes,
                 self.test_sequences,
+
+                self.history_window_size,
+                self.pattern_window_size,
 
                 self.kmed,
                 self.scaler

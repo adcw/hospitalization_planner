@@ -1,29 +1,25 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
-
 import numpy as np
 import pandas as pd
+from matplotlib import colormaps
 from tqdm import tqdm
 
 from src.breathing_patterns.data.dataset import BreathingDataset
 from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
 from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
-from src.breathing_patterns.utils.clustering import learn_clusters
 from src.config.seeds import set_seed
-from src.tools.extract import extract_seq_features
-from src.model_selection.stratified import stratified_sampling
+from src.configuration import COLORMAP
 from src.session.utils.save_plots import base_dir, save_plot
+from src.tools.extract import extract_seq_features
 from src.tools.iterators import windowed
 from src.tools.reports import save_report_and_conf_m
 from src.tools.run_utils import get_run_path
 
-from src.configuration import COLORMAP
-
-DATASET_PATH = "../../bp_dataset_creation_runs/run_2/breathing_dataset.pkl"
+DATASET_PATH = "../../bp_dataset_creation_runs/run_1/breathing_dataset.pkl"
 RUN_PATH = "../../bp_test_runs"
-MODEL_PATH = "../../bp_train_runs/run_8/model.pkl"
+MODEL_PATH = "../../bp_train_runs/run_1/model.pkl"
 
 MAX_PLOTS = 40
 MIN_X_WINDOW_RATE = 0.8
@@ -79,26 +75,15 @@ def plot_breathing(
     ax[-1].xaxis.set_major_locator(plt.MultipleLocator(10))
 
     fig.suptitle("Breathing parameters")
-    save_plot(f"cases/{plot_index or 'case'}.png")
+    save_plot(f"cases/{plot_index}.png")
 
 
-if __name__ == '__main__':
-    set_seed()
-    run_path = get_run_path(RUN_PATH)
-    print(f"Current run path: {run_path}")
-    base_dir(run_path)
-
-    bd = BreathingDataset.read(DATASET_PATH)
-    model = BreathingPatternModel()
-    model.load(MODEL_PATH)
-
-    sequences = bd.test_sequences
-    scaled_sequences = [pd.DataFrame(bd.scaler.transform(s), columns=s.columns) for s in sequences]
-    kmed = learn_clusters(scaled_sequences, n_clusters=12, input_cols=PATTERN_CLUSTER_COLS, save_plots=False)
-
-    # Perform quick test
-    to_chose = min(MAX_PLOTS, len(bd.test_sequences))
-    plot_indices = stratified_sampling(classes=kmed.labels_, sample_size=to_chose)
+def test_model(
+        model: BreathingPatternModel,
+        dataset: BreathingDataset,
+) -> Tuple[List[int], List[int]]:
+    sequences = dataset.test_sequences
+    scaled_sequences = [pd.DataFrame(dataset.scaler.transform(s), columns=s.columns) for s in sequences]
 
     y_true_all = []
     y_pred_all = []
@@ -107,36 +92,52 @@ if __name__ == '__main__':
         scaled = scaled_sequences[i_seq]
 
         window_ranges = [w for w in
-                         windowed(np.arange(scaled.shape[0]), window_size=bd.window_size * 2,
-                                  stride=max(1, int(STRIDE_RATE * bd.window_size)))]
+                         windowed(np.arange(scaled.shape[0]),
+                                  window_size=dataset.history_window_size + dataset.pattern_window_size,
+                                  stride=max(1, int(STRIDE_RATE * dataset.history_window_size)))]
 
-        filtered_window_ranges = [wr for wr in window_ranges if len(wr) >= bd.window_size * (1 + MIN_X_WINDOW_RATE)]
+        filtered_window_ranges = [wr for wr in window_ranges if
+                                  len(wr) >= dataset.history_window_size + dataset.pattern_window_size]
 
         if len(filtered_window_ranges) == 0:
             continue
 
-        x_windows = [scaled.iloc[wr[:bd.window_size], :] for wr in filtered_window_ranges]
-        y_windows = [scaled.iloc[wr[bd.window_size:], :] for wr in filtered_window_ranges]
+        x_windows = [scaled.iloc[wr[:dataset.history_window_size], :] for wr in filtered_window_ranges]
+        y_windows = [scaled.iloc[wr[dataset.history_window_size:], :] for wr in filtered_window_ranges]
 
-        x_window_features = extract_seq_features(x_windows, input_cols=PATTERN_CLUSTER_COLS)
+        # x_window_features = extract_seq_features(x_windows, input_cols=PATTERN_CLUSTER_COLS)
         y_window_features = extract_seq_features(y_windows, input_cols=PATTERN_CLUSTER_COLS)
 
-        x_classes = bd.kmed.predict(x_window_features)
-        y_classes = bd.kmed.predict(y_window_features)
+        # x_classes = dataset.kmed.predict(x_window_features)
+        y_classes = dataset.kmed.predict(y_window_features)
 
         y_classes_pred = model.predict(x_windows).tolist()
 
         y_true_all.extend(y_classes)
         y_pred_all.extend(y_classes_pred)
 
-        if i_seq in plot_indices:
-            plot_breathing(
-                sequences[i_seq][PATTERN_CLUSTER_COLS],
-                ranges=filtered_window_ranges,
-                y_labels_true=y_classes,
-                y_labels_pred=y_classes_pred,
-                n_classes=model.n_classes,
-                plot_index=i_seq
-            )
+        plot_breathing(
+            sequences[i_seq][PATTERN_CLUSTER_COLS],
+            ranges=filtered_window_ranges,
+            y_labels_true=y_classes,
+            y_labels_pred=y_classes_pred,
+            n_classes=model.n_classes,
+            plot_index=i_seq
+        )
 
     save_report_and_conf_m(y_true_all, y_pred_all, cm_title="Test confusion matrix")
+
+    return y_true_all, y_pred_all
+
+
+if __name__ == '__main__':
+    set_seed()
+    run_path = get_run_path(RUN_PATH)
+    print(f"Current run path: {run_path}")
+    base_dir(run_path)
+
+    _bd = BreathingDataset.read(DATASET_PATH)
+    _model = BreathingPatternModel()
+    _model.load(MODEL_PATH)
+
+    test_model(model=_model, dataset=_bd)

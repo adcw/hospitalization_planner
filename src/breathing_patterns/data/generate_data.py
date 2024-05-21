@@ -113,7 +113,10 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
                           xs_classes=xs_classes,
                           ys_classes=ys_classes,
                           test_sequences=sequences_test,
-                          window_size=PATTERN_WINDOW_SIZE,
+
+                          pattern_window_size=PATTERN_WINDOW_SIZE,
+                          history_window_size=HISTORY_WINDOW_SIZE,
+
                           kmed=kmed,
                           scaler=scaler,
                           )
