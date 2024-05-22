@@ -20,8 +20,8 @@ from src.tools.run_utils import get_run_path
 
 CSV_PATH = '../../../data/input.csv'
 
-PATTERN_WINDOW_SIZE = 5
-HISTORY_WINDOW_SIZE = 15
+PATTERN_WINDOW_SIZE = 3
+HISTORY_WINDOW_SIZE = 10
 
 STRIDE_RATE = 0.001
 N_CLASSES = 5
@@ -57,8 +57,6 @@ def extract_patterns(
         stride_rate: float,
         n_classes: int,
         pattern_cluster_cols: List[str],
-
-        scaler: MinMaxScaler
 ):
     # Make windows and cluster them
     print("Preparing windows for clustering...")
@@ -69,11 +67,11 @@ def extract_patterns(
     kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
 
     # Unscale windows and visualize clustering rules with the use of tree
-    original_windows = [pd.DataFrame(scaler.inverse_transform(w), columns=w.columns) for w in
-                        windows]
+    # original_windows = [pd.DataFrame(scaler.inverse_transform(w), columns=w.columns) for w in
+    #                     windows]
 
     print("Discovering cluster rules...")
-    original_w_features = visualize_clustering_rules(original_windows, labels=kmed.labels_,
+    original_w_features = visualize_clustering_rules(windows, labels=kmed.labels_,
                                                      input_cols=pattern_cluster_cols)
 
     # Show cluster centers
@@ -83,7 +81,7 @@ def extract_patterns(
         plot_data.append({
             'class': i,  # dtype: int
             'features': original_w_features.iloc[med_i, :],  # dtype: pd.Series
-            'window': original_windows[med_i]  # dtype: pd.DataFrame
+            'window': windows[med_i]  # dtype: pd.DataFrame
         })
 
     plot_medoid_data(plot_data, PATTERN_CLUSTER_COLS)
@@ -103,8 +101,9 @@ def get_dataset(
         pattern_cluster_cols: List[str],
 
         kmed,
-        scaler
 ):
+    sequences_train, scaler = scale(sequences_train)
+
     # Creating windows for training
     print("Preparing windows for clustering...")
     train_windows = make_windows(sequences_train, window_size=history_window_size + pattern_window_size,
@@ -129,11 +128,11 @@ def get_dataset(
                             ys_classes=ys_classes,
                             test_sequences=sequences_test,
 
-                            pattern_window_size=PATTERN_WINDOW_SIZE,
-                            history_window_size=HISTORY_WINDOW_SIZE,
+                            pattern_window_size=pattern_window_size,
+                            history_window_size=history_window_size,
 
                             kmed=kmed,
-                            scaler=scaler,
+                            scaler=scaler
                             )
 
 
@@ -148,15 +147,13 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
                                n_classes: int,
 
                                pattern_cluster_cols: List[str],
-                               scaler
                                ):
     kmed = extract_patterns(
         sequences=[*sequences_train, *sequences_test],
-        scaler=scaler,
         n_classes=n_classes,
         stride_rate=stride_rate,
         pattern_window_size=pattern_window_size,
-        pattern_cluster_cols=pattern_cluster_cols
+        pattern_cluster_cols=pattern_cluster_cols,
     )
 
     return get_dataset(
@@ -169,7 +166,6 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
         pattern_cluster_cols=pattern_cluster_cols,
         stride_rate=stride_rate,
 
-        scaler=scaler,
         kmed=kmed
     )
 
@@ -181,7 +177,7 @@ if __name__ == '__main__':
     base_dir(run_path)
 
     _sequences, preprocessor = _get_sequences(path=CSV_PATH, usecols=COLS)
-    _sequences, _scaler = scale(_sequences)
+    # _sequences, _scaler = scale(_sequences)
     labels = label_sequences(_sequences, stratify_cols=PATTERN_CLUSTER_COLS).labels_
 
     _sequences_train, _sequences_test = train_test_split_safe(_sequences, stratify=labels, test_size=TEST_PERC)
@@ -196,8 +192,6 @@ if __name__ == '__main__':
         stride_rate=STRIDE_RATE,
         n_classes=N_CLASSES,
         pattern_cluster_cols=PATTERN_CLUSTER_COLS,
-
-        scaler=_scaler
     )
 
     _ds.save(f"{run_path}/breathing_dataset.pkl")

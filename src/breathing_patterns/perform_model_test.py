@@ -86,6 +86,7 @@ def test_model(
         dataset: BreathingDataset,
 ) -> Tuple[List[int], List[int]]:
     sequences = dataset.test_sequences
+
     scaled_sequences = [pd.DataFrame(dataset.scaler.transform(s), columns=s.columns) for s in sequences]
 
     y_true_all = []
@@ -142,7 +143,7 @@ if __name__ == '__main__':
     base_dir(run_path)
 
     _bd = BreathingDataset.read(DATASET_PATH)
-    _model = BreathingPatternModel()
+    _model = BreathingPatternModel(window_size=_bd.history_window_size)
     _model.load(MODEL_PATH)
 
     test_model(model=_model, dataset=_bd)

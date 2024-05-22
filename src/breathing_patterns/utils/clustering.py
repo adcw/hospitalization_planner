@@ -4,6 +4,7 @@ import dtreeviz
 import numpy as np
 import pandas as pd
 import sklearn_extra
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn_extra.cluster import KMedoids
 from tqdm import tqdm
@@ -16,7 +17,7 @@ from sklearn.metrics import silhouette_score
 from src.configuration import COLORMAP
 
 
-def _medoid_helper(kmed: KMedoids, features, n_probes: int = 10):
+def _medoid_helper(kmed: KMedoids, features, n_probes: int = 5):
     best_score = -1
     best_kmed = None
 
@@ -115,7 +116,9 @@ def label_sequences(seqs: List[pd.DataFrame], stratify_cols: Optional[List[str]]
                     n_clusters: int = 5) -> sklearn_extra.cluster.KMedoids:
     seq_features = extract_seq_features(seqs, input_cols=stratify_cols, mode="old")
 
+    seq_features = MinMaxScaler().fit_transform(seq_features)
+
     kmed = KMedoids(n_clusters=min(n_clusters, len(seqs)), init='k-medoids++')
-    kmed = _medoid_helper(kmed, seq_features)
+    kmed = _medoid_helper(kmed, seq_features, n_probes=10)
 
     return kmed

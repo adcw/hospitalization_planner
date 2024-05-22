@@ -10,7 +10,7 @@ RUN_PATH = "../../bp_train_runs"
 
 def train():
     bd = BreathingDataset.read(DATASET_PATH)
-    model = BreathingPatternModel()
+    model = BreathingPatternModel(bd.history_window_size)
 
     model.fit(bd, batch_size=128, n_epochs=3000, es_patience=50)
     model.dump(f"{base_dir()}/model.pkl")

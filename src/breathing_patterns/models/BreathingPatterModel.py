@@ -30,7 +30,11 @@ def calculate_class_weights(class_counts, strength: float = 1):
 
 class BreathingPatternModel:
     def __init__(self,
+                 window_size: int,
                  device: torch.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')):
+
+        self.window_size = window_size
+
         self.n_classes = None
         self.n_attr = None
         self.device = device
@@ -39,7 +43,6 @@ class BreathingPatternModel:
         self.__net: Optional[WindowedConvLSTM] = None
 
     def __forward(self, xs, ys, batch_size: int, is_eval=False):
-
         if is_eval:
             self.__net.eval()
         else:
@@ -88,6 +91,26 @@ class BreathingPatternModel:
             CLD(channels=256, kernel_size=3, activation=nn.SELU),
             CLD(channels=512, kernel_size=3, activation=nn.SELU),
         ]
+
+        max_conv_depth = int(np.ceil(self.window_size / 2 - 1))
+
+        if max_conv_depth < len(cldata):
+            print(
+                f"{len(cldata)} conv layers is too much for window size = {self.window_size}. Truncating to {max_conv_depth} layers.")
+            cldata = cldata[-max_conv_depth:]
+            print(f"{len(cldata)=}")
+
+        # w = 10
+        # 1: 10 - 3 + 1 = 8
+        # 2: 7 - 3 + 1 = 6
+        # 3: 6 - 3 + 1 = 4
+
+        # n: w - k*(3 - 1)
+        # w - k (3 - 1) > 0
+        # 2k < w
+        # k < w / 2
+
+        # k = ceil(w / 2 - 1)
 
         self.__net = WindowedConvLSTM(n_attr=self.n_attr,
                                       output_size=self.n_classes,
@@ -176,7 +199,8 @@ class BreathingPatternModel:
             ys_val_np = ys_val_tensor.cpu().numpy()
             ys_pred_np = ys_pred_class.cpu().numpy()
 
-            save_txt(path='classification_report.txt', txt=classification_report(ys_val_np, ys_pred_np, zero_division=0))
+            save_txt(path='classification_report.txt',
+                     txt=classification_report(ys_val_np, ys_pred_np, zero_division=0))
 
             cm = confusion_matrix(ys_val_np, ys_pred_np)
 
