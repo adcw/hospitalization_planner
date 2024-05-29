@@ -84,6 +84,7 @@ def plot_breathing(
 def test_model(
         model: BreathingPatternModel,
         dataset: BreathingDataset,
+        use_pattern_in_input: bool = False
 ) -> Tuple[List[int], List[int]]:
     sequences = dataset.test_sequences
 
@@ -109,13 +110,16 @@ def test_model(
         x_windows = [scaled.iloc[wr[:dataset.history_window_size], :] for wr in filtered_window_ranges]
         y_windows = [scaled.iloc[wr[dataset.history_window_size:], :] for wr in filtered_window_ranges]
 
-        # x_window_features = extract_seq_features(x_windows, input_cols=PATTERN_CLUSTER_COLS)
-        y_window_features = extract_seq_features(y_windows, input_cols=PATTERN_CLUSTER_COLS)
+        x_classes = None
 
-        # x_classes = dataset.kmed.predict(x_window_features)
+        if use_pattern_in_input:
+            x_window_features = extract_seq_features(x_windows, input_cols=PATTERN_CLUSTER_COLS)
+            x_classes = dataset.kmed.predict(x_window_features)
+
+        y_window_features = extract_seq_features(y_windows, input_cols=PATTERN_CLUSTER_COLS)
         y_classes = dataset.kmed.predict(y_window_features)
 
-        y_classes_pred = model.predict(x_windows).tolist()
+        y_classes_pred = model.predict(x_windows, x_classes).tolist()
 
         y_true_all.extend(y_classes)
         y_pred_all.extend(y_classes_pred)

@@ -3,6 +3,7 @@ from typing import List, Optional
 import pandas as pd
 import torch
 from sklearn.preprocessing import MinMaxScaler
+from sklearn_extra.cluster import KMedoids
 
 from src.breathing_patterns.data.dataset import BreathingDataset
 from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
@@ -11,6 +12,7 @@ from src.breathing_patterns.utils.plot import plot_medoid_data
 from src.breathing_patterns.utils.windows import make_windows, xy_windows_split
 from src.chosen_colnames import COLS
 from src.config.seeds import set_seed
+from src.model_selection.medoids import remove_medoid_by_index
 from src.model_selection.stratified import train_test_split_safe
 from src.session.model_manager import _get_sequences
 from src.session.utils.save_plots import base_dir
@@ -21,7 +23,7 @@ from src.tools.run_utils import get_run_path
 CSV_PATH = '../../../data/input.csv'
 
 PATTERN_WINDOW_SIZE = 3
-HISTORY_WINDOW_SIZE = 10
+HISTORY_WINDOW_SIZE = 7
 
 STRIDE_RATE = 0.001
 N_CLASSES = 5
@@ -64,15 +66,34 @@ def extract_patterns(
                            stride=max(1, round(pattern_window_size * stride_rate)))
 
     print("Performing clustering...")
-    kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
+    # kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
 
-    # Unscale windows and visualize clustering rules with the use of tree
-    # original_windows = [pd.DataFrame(scaler.inverse_transform(w), columns=w.columns) for w in
-    #                     windows]
+    kmed = KMedoids(n_clusters=n_classes, init="k-medoids++")
+    kmed.fit([
+        [0.25, 0.25, 0.25],
+        [0.5, 0.5, 0.5],
+        [0.75, 0.75, 0.75],
+        [1, 1, 1]
+    ])
+
+    features = extract_seq_features(windows, input_cols=pattern_cluster_cols)
+    labels = kmed.predict(features)
 
     print("Discovering cluster rules...")
-    original_w_features = visualize_clustering_rules(windows, labels=kmed.labels_,
+    original_w_features = visualize_clustering_rules(windows, labels=labels,
                                                      input_cols=pattern_cluster_cols)
+
+    input("OK?")
+    #
+    # medoid_index = int(input("Enter medoid index to be deleted. -1 means no deletion"))
+    #
+    # if medoid_index != -1:
+    #     kmed = remove_medoid_by_index(kmed, medoid_index)
+    #     original_w_features = visualize_clustering_rules(windows, labels=kmed.predict(original_w_features),
+    #                                                      input_cols=pattern_cluster_cols)
+    #
+    # input("Proceed?")
+
 
     # Show cluster centers
     plot_data = []
@@ -115,7 +136,7 @@ def get_dataset(
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
     ys_classes = kmed.predict(y_window_features)
 
-    x_window_features = extract_seq_features(x_windows, input_cols=pattern_cluster_cols)
+    x_window_features = extract_seq_features([x.iloc[-pattern_window_size:, :] for x in x_windows], input_cols=pattern_cluster_cols)
     xs_classes = kmed.predict(x_window_features)
 
     xs = [torch.Tensor(x.values) for x in x_windows]
@@ -132,7 +153,8 @@ def get_dataset(
                             history_window_size=history_window_size,
 
                             kmed=kmed,
-                            scaler=scaler
+                            scaler=scaler,
+                            n_classes=N_CLASSES
                             )
 
 
@@ -155,6 +177,8 @@ def generate_breathing_dataset(sequences_train: List[pd.DataFrame],
         pattern_window_size=pattern_window_size,
         pattern_cluster_cols=pattern_cluster_cols,
     )
+
+    input("Proceed?")
 
     return get_dataset(
         sequences_train=sequences_train,

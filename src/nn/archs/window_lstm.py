@@ -1,5 +1,6 @@
 from typing import Optional, List
 
+import torch
 from torch import nn
 from torch.functional import F
 
@@ -68,11 +69,16 @@ class WindowedConvLSTM(nn.Module):
             activation=self.mlp_activation
         )
 
-    def forward(self, x, m):
+    def forward(self, x, x_c):
         # x.shape = (batch, seq, feat)
 
         x_perm = x.permute(0, 2, 1)
         # (batch, feat, seq)
+
+        if x_c is not None:
+            x_c_2 = torch.reshape(x_c,(x_c.shape[0], x_c.shape[1], 1))
+            x_c_2 = x_c_2.repeat(1, 1, x.shape[1])
+            x_perm = torch.concat((x_perm, x_c_2), dim=1)
 
         x_conv = self.mlconv(x_perm)
         x_conv = x_conv.permute(0, 2, 1)

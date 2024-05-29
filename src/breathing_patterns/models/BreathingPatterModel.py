@@ -1,5 +1,6 @@
 import contextlib
 import pickle
+from copy import deepcopy
 from typing import Optional, List
 
 import numpy as np
@@ -8,6 +9,7 @@ import seaborn as sns
 import torch
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.preprocessing import OneHotEncoder
 from torch import nn, optim
 from tqdm import tqdm
 
@@ -28,10 +30,36 @@ def calculate_class_weights(class_counts, strength: float = 1):
     return weights
 
 
+def one_hot_encode(labels: np.ndarray | List, n_classes: int) -> np.ndarray:
+    """
+    One-hot encodes the given labels.
+
+    Args:
+        labels (np.ndarray): Array of integer labels.
+        n_classes (int): Number of classes.
+
+    Returns:
+        np.ndarray: One-hot encoded matrix.
+    """
+    if not isinstance(labels, np.ndarray):
+        labels = np.array(labels)
+
+    categories = [np.arange(n_classes)]
+    encoder = OneHotEncoder(sparse_output=False, categories=categories)
+    labels_reshaped = labels.reshape(-1, 1)
+    return encoder.fit_transform(labels_reshaped)
+
+
 class BreathingPatternModel:
     def __init__(self,
                  window_size: int,
-                 device: torch.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')):
+                 device: torch.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'),
+                 use_pattern_in_input: bool = False,
+                 n_classes: Optional[int] = None
+                 ):
+
+        if use_pattern_in_input and n_classes is None:
+            raise AttributeError("The use_pattern_in_input is True, but there is no information about n_classes")
 
         self.window_size = window_size
 
@@ -42,7 +70,10 @@ class BreathingPatternModel:
         self.__criterion = None
         self.__net: Optional[WindowedConvLSTM] = None
 
-    def __forward(self, xs, ys, batch_size: int, is_eval=False):
+        self.__use_pattern_in_input = use_pattern_in_input
+        self.__n_classes = n_classes
+
+    def __forward(self, xs, ys, batch_size: int, is_eval=False, xs_c: Optional[List] = None):
         if is_eval:
             self.__net.eval()
         else:
@@ -59,14 +90,23 @@ class BreathingPatternModel:
         if is_eval:
             batch_size = len(xs)
 
-        for xs_batch, ys_batch in batch_iter(xs, ys, batch_size=batch_size):
+        with_c = True
+        if xs_c is None:
+            with_c = False
+            xs_c = deepcopy(xs)
+
+        for xs_batch, xs_c_batch, ys_batch in batch_iter(xs, xs_c, ys, batch_size=batch_size):
             xs_batch = torch.stack(xs_batch).to(self.device)
             ys_batch = torch.Tensor(ys_batch).long().to(self.device)
+
+            if with_c:
+                xs_c_batch = one_hot_encode(xs_c_batch, self.n_classes)
+                xs_c_batch = torch.Tensor(xs_c_batch).long().to(self.device)
 
             self.__optimizer.zero_grad()
 
             with (torch.no_grad() if is_eval else contextlib.nullcontext()):
-                ys_pred = self.__net.forward(xs_batch, None)
+                ys_pred = self.__net.forward(xs_batch, xs_c_batch if with_c else None)
 
             loss = self.__criterion(ys_pred, ys_batch)
             total_loss += loss.item()
@@ -112,7 +152,7 @@ class BreathingPatternModel:
 
         # k = ceil(w / 2 - 1)
 
-        self.__net = WindowedConvLSTM(n_attr=self.n_attr,
+        self.__net = WindowedConvLSTM(n_attr=self.n_attr + (self.__n_classes if self.__use_pattern_in_input else 0),
                                       output_size=self.n_classes,
                                       conv_layers_data=cldata,
 
@@ -142,13 +182,15 @@ class BreathingPatternModel:
 
             n_epochs: int = 400,
             batch_size: int = 64,
-            es_patience: int = 12
+            es_patience: int = 12,
             ):
         self.n_attr = dataset.xs[0].shape[1]
         self.n_classes = len(np.unique(dataset.ys_classes))
 
-        xs_train, ys_train, xs_val, ys_val = train_test_split_safe(dataset.xs, dataset.ys_classes, test_size=0.2,
-                                                                   stratify=dataset.ys_classes)
+        xs_train, xs_c_train, ys_train, xs_val, xs_c_val, ys_val = train_test_split_safe(dataset.xs, dataset.xs_classes,
+                                                                                         dataset.ys_classes,
+                                                                                         test_size=0.2,
+                                                                                         stratify=dataset.ys_classes)
 
         train_classes_counts = np.unique(ys_train, return_counts=True)[1]
         weight = torch.Tensor(calculate_class_weights(train_classes_counts, strength=1)).to(self.device)
@@ -169,11 +211,13 @@ class BreathingPatternModel:
             print(f"Epoch {e + 1}/{n_epochs}")
 
             # Train
-            train_loss = self.__forward(xs_train, ys_train, batch_size)
+            train_loss = self.__forward(xs_train, ys_train, batch_size=batch_size,
+                                        xs_c=xs_c_train if self.__use_pattern_in_input else None)
             train_losses.append(train_loss)
 
             # Eval
-            val_loss = self.__forward(xs_val, ys_val, batch_size, is_eval=True)
+            val_loss = self.__forward(xs_val, ys_val, batch_size=batch_size, is_eval=True,
+                                      xs_c=xs_c_val if self.__use_pattern_in_input else None)
             val_losses.append(val_loss)
 
             if early_stopping(val_loss):
@@ -193,7 +237,14 @@ class BreathingPatternModel:
         with torch.no_grad():
             xs_val_tensor = torch.stack(xs_val).to(self.device)
             ys_val_tensor = torch.Tensor(ys_val).long().to(self.device)
-            ys_pred = self.__net.forward(xs_val_tensor, None)
+
+            xs_c_val_tensor = None
+
+            if self.__use_pattern_in_input:
+                xs_c_val_tensor = one_hot_encode(xs_c_val, self.n_classes)
+                xs_c_val_tensor = torch.Tensor(xs_c_val_tensor).long().to(self.device)
+
+            ys_pred = self.__net.forward(xs_val_tensor, xs_c_val_tensor)
             ys_pred_class = torch.argmax(ys_pred, dim=1)
 
             ys_val_np = ys_val_tensor.cpu().numpy()
@@ -214,7 +265,10 @@ class BreathingPatternModel:
 
             pass
 
-    def predict(self, xs: List[pd.DataFrame]):
+    def predict(self, xs: List[pd.DataFrame], x_classes: Optional[List[int]] = None):
+        if x_classes is not None:
+            x_classes = one_hot_encode(x_classes, self.n_classes)
+            x_classes = torch.Tensor(x_classes).long().to(self.device)
 
         tensor_list = []
         for x in xs:
@@ -224,7 +278,7 @@ class BreathingPatternModel:
 
         self.__net.eval()
         with torch.no_grad():
-            results = self.__net.forward(x_tens, None)
+            results = self.__net.forward(x_tens, x_classes)
             results = torch.argmax(results, dim=1).cpu().numpy()
 
         return results

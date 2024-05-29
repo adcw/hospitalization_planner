@@ -4,9 +4,10 @@ from src.breathing_patterns.data.generate_data import generate_breathing_dataset
 from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
 from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
 from src.breathing_patterns.perform_model_test import test_model
-from src.breathing_patterns.utils.clustering import label_sequences
+from src.breathing_patterns.utils.clustering import label_sequences, visualize_clustering_rules
 from src.chosen_colnames import COLS
 from src.config.seeds import set_seed
+from src.model_selection.medoids import remove_medoid_by_index
 from src.session.model_manager import _get_sequences
 from src.session.utils.save_plots import base_dir
 from src.tools.dataframe_scale import scale
@@ -17,13 +18,15 @@ PATTERN_WINDOW_SIZE = 3
 HISTORY_WINDOW_SIZE = 7
 
 STRIDE_RATE = 0.001
-N_CLASSES = 5
+N_CLASSES = 4
 CSV_PATH = '../../data/input.csv'
 
 RUN_PATH = "../../bp_crossvalidation_runs"
 
 N_SPLITS = 10
 EPOCHS = 5000
+
+USE_PATTERN_IN_INPUT = False
 
 if __name__ == '__main__':
     set_seed()
@@ -66,12 +69,13 @@ if __name__ == '__main__':
         )
 
         base_dir(f"{run_path}/split_{i + 1}/train")
-        model = BreathingPatternModel(window_size=HISTORY_WINDOW_SIZE)
+        model = BreathingPatternModel(window_size=HISTORY_WINDOW_SIZE, use_pattern_in_input=USE_PATTERN_IN_INPUT,
+                                      n_classes=N_CLASSES)
         model.fit(bd, batch_size=128, n_epochs=EPOCHS, es_patience=50)
 
         # Classification report in dict and confusion matrix
         base_dir(f"{run_path}/split_{i + 1}/test")
-        y_true, y_pred = test_model(model=model, dataset=bd)
+        y_true, y_pred = test_model(model=model, dataset=bd, use_pattern_in_input=USE_PATTERN_IN_INPUT)
 
         y_true_all.extend(y_true)
         y_pred_all.extend(y_pred)
