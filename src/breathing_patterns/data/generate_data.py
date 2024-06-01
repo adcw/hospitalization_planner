@@ -68,13 +68,20 @@ def extract_patterns(
     print("Performing clustering...")
     # kmed = learn_clusters(windows, n_clusters=n_classes, input_cols=pattern_cluster_cols)
 
-    kmed = KMedoids(n_clusters=n_classes, init="k-medoids++")
-    kmed.fit([
-        [0.25, 0.25, 0.25],
-        [0.5, 0.5, 0.5],
-        [0.75, 0.75, 0.75],
-        [1, 1, 1]
-    ])
+    for i in range(400):
+        kmed = KMedoids(n_clusters=n_classes, init='random', random_state=i)
+
+        kmed.fit([
+            [0.25, 0.25, 0.25],
+            [0.5, 0.5, 0.5],
+            [0.75, 0.75, 0.75],
+            [1, 1, 1]
+        ])
+
+        if (kmed.cluster_centers_ == [[0.25, 0.25, 0.25], [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1., 1., 1.]]).all():
+            break
+    else:
+        raise ValueError("I couldn't get the desired clustering")
 
     features = extract_seq_features(windows, input_cols=pattern_cluster_cols)
     labels = kmed.predict(features)
@@ -94,7 +101,6 @@ def extract_patterns(
     #
     # input("Proceed?")
 
-
     # Show cluster centers
     plot_data = []
 
@@ -105,7 +111,7 @@ def extract_patterns(
             'window': windows[med_i]  # dtype: pd.DataFrame
         })
 
-    plot_medoid_data(plot_data, PATTERN_CLUSTER_COLS)
+    plot_medoid_data(plot_data, pattern_cluster_cols)
 
     return kmed
 
@@ -136,7 +142,8 @@ def get_dataset(
     y_window_features = extract_seq_features(y_windows, input_cols=pattern_cluster_cols)
     ys_classes = kmed.predict(y_window_features)
 
-    x_window_features = extract_seq_features([x.iloc[-pattern_window_size:, :] for x in x_windows], input_cols=pattern_cluster_cols)
+    x_window_features = extract_seq_features([x.iloc[-pattern_window_size:, :] for x in x_windows],
+                                             input_cols=pattern_cluster_cols)
     xs_classes = kmed.predict(x_window_features)
 
     xs = [torch.Tensor(x.values) for x in x_windows]
