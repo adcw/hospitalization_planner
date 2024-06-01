@@ -140,24 +140,16 @@ class BreathingPatternModel:
             cldata = cldata[-max_conv_depth:]
             print(f"{len(cldata)=}")
 
-        # w = 10
-        # 1: 10 - 3 + 1 = 8
-        # 2: 7 - 3 + 1 = 6
-        # 3: 6 - 3 + 1 = 4
-
-        # n: w - k*(3 - 1)
-        # w - k (3 - 1) > 0
-        # 2k < w
-        # k < w / 2
-
-        # k = ceil(w / 2 - 1)
-
         self.__net = WindowedConvLSTM(n_attr=self.n_attr + (self.__n_classes if self.__use_pattern_in_input else 0),
                                       output_size=self.n_classes,
                                       conv_layers_data=cldata,
 
-                                      # lstm_hidden_size=512,
-                                      # lstm_dropout=0.3,
+                                      with_lstm=False,
+                                      lstm_hidden_size=256,
+                                      lstm_dropout=0.3,
+                                      lstm_layers=2,
+
+                                      with_conv=True,
                                       conv_channel_dropout=0.5,
                                       mlp_dropout=0.5,
                                       mlp_arch=[256, 256, 128, 32],
