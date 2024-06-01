@@ -1,16 +1,14 @@
 from sklearn.model_selection import StratifiedKFold
 
-from src.breathing_patterns.data.generate_data import generate_breathing_dataset, extract_patterns, get_dataset
+from src.breathing_patterns.data.generate_data import extract_patterns, get_dataset
 from src.breathing_patterns.models.BreathingPatterModel import BreathingPatternModel
 from src.breathing_patterns.pattern_cluster_cols import PATTERN_CLUSTER_COLS
 from src.breathing_patterns.perform_model_test import test_model
-from src.breathing_patterns.utils.clustering import label_sequences, visualize_clustering_rules
+from src.breathing_patterns.utils.clustering import label_sequences
 from src.chosen_colnames import COLS
 from src.config.seeds import set_seed
-from src.model_selection.medoids import remove_medoid_by_index
 from src.session.model_manager import _get_sequences
 from src.session.utils.save_plots import base_dir
-from src.tools.dataframe_scale import scale
 from src.tools.reports import save_report_and_conf_m
 from src.tools.run_utils import get_run_path
 
